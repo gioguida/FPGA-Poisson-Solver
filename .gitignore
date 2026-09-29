@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# codex artifacts
+AGENTS.md
+PROJECT_SCOPE.md
+
+# uv artifacts
+uv.lock
