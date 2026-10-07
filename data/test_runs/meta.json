@@ -1,0 +1,9 @@
+{
+    "grid_nx": 201,
+    "grid_ny": 201,
+    "iterations": 400,
+    "format": "floating_point",
+    "dtype": "double",
+    "data_endian": "little",
+    "boundaryconditions": "Dirichlet zero"
+}

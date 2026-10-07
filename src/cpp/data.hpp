@@ -1,50 +1,53 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
+template <class RealType, class IntegerType>
 struct Discretization {
-    int nx;
-    int ny;
-    int N;
-    double dx; 
-    int iters;  
+    IntegerType nx;
+    IntegerType ny;
+    IntegerType N;
+    RealType dx; 
+    RealType tol;
+    IntegerType iters;  
 };
 
+template <class RealType, class IntegerType>
 class Field {
     public:
         // constructors
         Field() : ptr_(0), xdim_(0), ydim_(0) {}
-        Field(int xdim, int ydim) : xdim_(xdim), ydim_(ydim) {
-            ptr_ = new double[xdim*ydim];
+        Field(IntegerType xdim, IntegerType ydim) : xdim_(xdim), ydim_(ydim) {
+            ptr_ = new RealType[xdim*ydim];
         }
         // desctructor
         ~Field() { free(); }
         // initialization
-        void init(int xdim, int ydim) {
+        void init(IntegerType xdim, IntegerType ydim) {
             free();
-            ptr_ = new double[xdim*ydim];
+            ptr_ = new RealType[xdim*ydim];
             xdim_ = xdim;
             ydim_ = ydim;
         }
         // getters
-        double* data() { return ptr_; }
-        const double* data() const { return ptr_; }
-        int xdim() const { return xdim_; }
-        int ydim() const { return ydim_; }
-        int length() const { return xdim_*ydim_; }
+        RealType* data() { return ptr_; }
+        const RealType* data() const { return ptr_; }
+        IntegerType xdim() const { return xdim_; }
+        IntegerType ydim() const { return ydim_; }
+        IntegerType length() const { return xdim_*ydim_; }
 
         // access via (i,j) pair
-        inline double& operator() (int i, int j) {
+        inline RealType& operator() (IntegerType i, IntegerType j) {
             return ptr_[i+j*xdim_];
         }
-        inline double const& operator() (int i, int j) const {
+        inline RealType const& operator() (IntegerType i, IntegerType j) const {
             return ptr_[i+j*xdim_];
         }
 
         // access as a 1D field
-        inline double & operator[] (int i) {
+        inline RealType & operator[] (IntegerType i) {
             return ptr_[i];
         }
-        inline double const& operator[] (int i) const {
+        inline RealType const& operator[] (IntegerType i) const {
             return ptr_[i];
         }
     
@@ -55,14 +58,8 @@ class Field {
             ptr_ = 0;
         }
 
-        double * ptr_;
-        int xdim_;
-        int ydim_;
+        RealType * ptr_;
+        IntegerType xdim_;
+        IntegerType ydim_;
 };
-
-extern Field u;
-extern Field bndN, bndE, bndS, bndW;
-extern Discretization options;
-
-
 #endif

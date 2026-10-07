@@ -8,25 +8,13 @@
 #include <cstring>
 
 
-#include "data.hpp"
-#include "linalg.hpp"
-#include "walltime.hpp"
+#include "../../src/cpp/data.hpp"
+#include "../../src/cpp/linalg.hpp"
+#include "../../src/cpp/walltime.hpp"
 
 // #ifdef FLOAT_
-
 using RealType = double;
 using IntegerType = int;
-std::string format = "floating_point";
-std::string dtype = "double";
-
-// #elifdef FIXED_
-
-// #include "fixed.hpp"
-// using RealType = numeric::fixed<12,20>;
-// using IntegerType = numeric::fixed<32,0>;
-// std::string format = "floating_point";
-// std::string dtype = "double";
-
 // #endif
 
 Discretization<RealType, IntegerType> options;
@@ -145,16 +133,17 @@ IntegerType main(IntegerType argc, char* argv[]) {
     // get times
     RealType time_end = walltime();
 
+    ////////////////////////////////////////////////////////////////////
     // write final solution to BOV file for visualization
+    ////////////////////////////////////////////////////////////////////
 
     // binary data
-    {
-        FILE* output = fopen("../../data/test_runs/output.bin", "w");
-        fwrite(u.data(), sizeof(RealType), nx * nx, output);
-        fclose(output);
-    }
+    FILE* output = fopen("data/test_runs/output.bin", "w");
+    fwrite(u.data(), sizeof(RealType), nx * nx, output);
+    fclose(output);
+    
 
-    std::ofstream fid("../../data/test_runs/output.bov");
+    std::ofstream fid("data/test_runs/output.bov");
     fid << "DATA_FILE: output.bin" << std::endl;
     fid << "DATA_SIZE: " << options.nx << " " << options.nx << " 1"
         << std::endl;
@@ -163,21 +152,10 @@ IntegerType main(IntegerType argc, char* argv[]) {
     fid << "DATA_ENDIAN: LITTLE" << std::endl;
     fid << "CENTERING: nodal" << std::endl;
     fid << "BRICK_ORIGIN: " << "0. 0. 0." << std::endl;
-    fid << "BRICK_SIZE: " << (options.nx-1)*options.dx << " "
-                          << (options.nx-1)*options.dx << " "
-                          << " 1.0" << std::endl;
-
-    // output simulation metadata in a json file
-    std::ofstream fm("../../data/test_runs/meta.json");
-    fm << "{" << std::endl;
-    fm << "    \"grid_nx\": " << options.nx << "," << std::endl;
-    fm << "    \"grid_ny\": " << options.nx << "," << std::endl;
-    fm << "    \"iterations\": " << iters_cg << "," << std::endl;
-    fm << "    \"format\": \"" << format << "\"," << std::endl;
-    fm << "    \"dtype\": \"" << dtype << "\"," << std::endl;
-    fm << "    \"data_endian\": \"" << "little" << "\"," << std::endl;
-    fm << "    \"boundaryconditions\": \"" << "Dirichlet zero" << "\"" << std::endl;
-    fm << "}" << std::endl;
+    fid << "BRICK_SIZE: " << (options.nx-1)*options.dx << ' '
+                          << (options.nx-1)*options.dx << ' '
+                          << " 1.0"
+        << std::endl;
 
     // print table summarizing results
     RealType timespent = time_end - time_start;
@@ -188,6 +166,7 @@ IntegerType main(IntegerType argc, char* argv[]) {
               << float(iters_cg)/timespent << " iters/second" << std::endl;
     std::cout << std::string(80, '-') << std::endl;
     std::cout << "### " 
+                        // << threads << ", "
                         << options.nx << ", "
                         << iters_cg   << ", "
                         << timespent

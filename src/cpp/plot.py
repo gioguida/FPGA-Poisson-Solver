@@ -120,7 +120,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "bov_file",
         nargs="?",
-        default="output.bov",
+        default="../../data/test_runs/output.bov",
         help="BOV header written by main.cpp (default: output.bov)",
     )
     args = parser.parse_args()
