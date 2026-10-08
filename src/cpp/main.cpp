@@ -12,28 +12,12 @@
 #include "linalg.hpp"
 #include "walltime.hpp"
 
-// #ifdef FLOAT_
-
-using RealType = double;
-using IntegerType = int;
-std::string format = "floating_point";
-std::string dtype = "double";
-
-// #elifdef FIXED_
-
-// #include "fixed.hpp"
-// using RealType = numeric::fixed<12,20>;
-// using IntegerType = numeric::fixed<32,0>;
-// std::string format = "floating_point";
-// std::string dtype = "double";
-
-// #endif
 
 Discretization<RealType, IntegerType> options;
 Field<RealType, IntegerType> u, f, h2f, bndN, bndS, bndW, bndE; 
 
 // read command line arguments
-void readcmdline(Discretization<RealType, IntegerType>& options, IntegerType argc, char* argv[]) {
+void readcmdline(Discretization<RealType, IntegerType>& options, int argc, char* argv[]) {
     if (argc != 4) {
         std::cerr << "Usage: main nx iters \n";
         std::cerr << "  nx      number of grid points in x-direction and "

@@ -1,6 +1,25 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
+#define FLOAT_
+
+#ifdef FLOAT_
+
+using RealType = double;
+using IntegerType = int;
+std::string format = "floating_point";
+std::string dtype = "double";
+
+#elifdef FIXED_
+
+#include "fixed.hpp"
+using RealType = numeric::fixed<12,20>;
+using IntegerType = numeric::fixed<32,0>;
+std::string format = "floating_point";
+std::string dtype = "double";
+
+#endif
+
 template <class RealType, class IntegerType>
 struct Discretization {
     IntegerType nx;
