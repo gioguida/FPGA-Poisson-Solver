@@ -1,5 +1,5 @@
 CXX     ?= g++
-CXXFLAGS = -O3
+CXXFLAGS = -O0 -g # -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all
 
 SOURCES_SIM = src/cpp/walltime.cpp	src/cpp/utils.cpp	src/cpp/main.cpp
 HEADERS_SIM = src/cpp/walltime.hpp 	src/cpp/data.hpp 	src/cpp/linalg.hpp	src/cpp/utils.hpp	src/cpp/fixed.hpp

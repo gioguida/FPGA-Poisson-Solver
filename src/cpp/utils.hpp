@@ -14,7 +14,6 @@
 #include "linalg.hpp"
 #include "walltime.hpp"
 
-using BYTE = unsigned char;
 
 /*** READ RHS AND EXACT SOLUTIONS VECTORS ***/
 
@@ -24,8 +23,7 @@ struct FixedPointFormat {
     bool is_signed;
 };
 
-// Metadata stored alongside an exported source field.  The field names follow
-// the JSON schema, except for "signed", which is a C++ keyword.
+// Metadata stored alongside an exported source field.
 struct SourceFieldMetadata {
     int grid_nx;
     int grid_ny;
@@ -40,16 +38,6 @@ struct SourceFieldMetadata {
 
 SourceFieldMetadata read_source_field_metadata(const std::string& filename);
 
-template<class T>
-struct is_numeric_fixed : std::false_type {};
-
-template<std::size_t IntegerBits, std::size_t FractionalBits>
-struct is_numeric_fixed<numeric::fixed<IntegerBits, FractionalBits>>
-    : std::true_type {
-    static constexpr std::size_t integer_bits = IntegerBits;
-    static constexpr std::size_t fractional_bits = FractionalBits;
-    static constexpr std::size_t total_bits = IntegerBits + FractionalBits;
-};
 
 template<class RealType>
 void load_fixed_rhs(Field<RealType>& field,
@@ -84,12 +72,15 @@ void load_fixed_rhs(Field<RealType>& field,
     }
 }
 
+/*** EXECUTE ONE INSTANCE OF THE PROBLEM ***/
+
 template<class RealType>
 int run_case(
     const SourceFieldMetadata& meta, 
     const std::string& test_case, 
     const std::string& precision
 ) {
+    Stats s = default_stats();
     int nx = meta.grid_nx;
     int N  = nx * nx;
     RealType dx = 1.0/(nx-1);
@@ -114,13 +105,13 @@ int run_case(
 
     // set Dirichlet boundary conditions to 0 all around
     RealType const_bdy = 0.0;
-    fill(bndN, const_bdy);
-    fill(bndS, const_bdy);
-    fill(bndE, const_bdy);
-    fill(bndW, const_bdy);
+    fill(bndN, const_bdy, s);
+    fill(bndS, const_bdy, s);
+    fill(bndE, const_bdy, s);
+    fill(bndW, const_bdy, s);
 
-    fill<RealType>(u, 0);
-    scale<RealType>(rhs, dx*dx, f);
+    fill<RealType>(u, 0, s);
+    scale<RealType>(rhs, dx*dx, f, s);
 
     int iters_cg = 0;
     bool cg_converged = false;
@@ -131,7 +122,7 @@ int run_case(
 
     // Conjugate Gradient call
     iters_cg = cg(u, rhs, max_cg_iters, tolerance, residual,
-                              cg_converged);
+                              cg_converged, s);
 
     // output some statistics
     std::cout << " CG executed for " << iters_cg 
@@ -163,10 +154,25 @@ int run_case(
               << " conjugate gradient iterations, at rate of "
               << float(iters_cg)/timespent << " iters/second" << std::endl;
     std::cout << std::string(80, '-') << std::endl;
+    std::cout << "Overflow stats:" << std::endl;
+    std::cout << "total overlows: " << s.total_overflow_count << std::endl;
+    std::cout << "add   overlows: " << s.add_overflows << std::endl;
+    std::cout << "sub   overlows: " << s.sub_overflows << std::endl;
+    std::cout << "mult  overlows: " << s.mul_overflows << std::endl;
+    std::cout << "div   overlows: " << s.div_overflows << std::endl;
+    std::cout << "reduc overlows: " << s.accumulation_overflows << std::endl;
+    std::cout << "max absolute raw value " << s.max_abs_raw << std::endl;
+    std::cout << "\t\tlimit: " 
+        << (std::int64_t{1} << (meta.fixed_point.total_bits - 1)) - 1
+        << std::endl;
+
+
+
+    std::cout << std::string(80, '-') << std::endl;
     std::cout << "### " 
                         << nx << ", "
                         << iters_cg   << ", "
-                        << timespent
+                        << residual 
               << " ###" << std::endl;
     std::cout << "Goodbye!" << std::endl;
 

@@ -228,6 +228,7 @@ uv.lock
 *.o
 *.exe
 main
+main.exe
 *.bin
 *.bov
 
