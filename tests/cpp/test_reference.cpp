@@ -12,16 +12,11 @@
 #include "../../src/cpp/linalg.hpp"
 #include "../../src/cpp/walltime.hpp"
 
-// #ifdef FLOAT_
-using RealType = double;
-using IntegerType = int;
-// #endif
-
-Discretization<RealType, IntegerType> options;
-Field<RealType, IntegerType> u, f, h2f, bndN, bndS, bndW, bndE; 
+Discretization<RealType> options;
+Field<RealType> u, f, h2f, bndN, bndS, bndW, bndE; 
 
 // read command line arguments
-void readcmdline(Discretization<RealType, IntegerType>& options, IntegerType argc, char* argv[]) {
+void readcmdline(Discretization<RealType>& options, int argc, char* argv[]) {
     if (argc != 4) {
         std::cerr << "Usage: main nx iters \n";
         std::cerr << "  nx      number of grid points in x-direction and "
@@ -56,14 +51,14 @@ void readcmdline(Discretization<RealType, IntegerType>& options, IntegerType arg
 
 // =============================================================================
 
-IntegerType main(IntegerType argc, char* argv[]) {
+int main(int argc, char* argv[]) {
     // read command line arguments
     readcmdline(options, argc, argv);
-    IntegerType nx = options.nx;
-    IntegerType N  = options.N;
+    int nx = options.nx;
+    int N  = options.N;
 
     // set iteration parameters
-    IntegerType max_cg_iters = options.iters;
+    int max_cg_iters = options.iters;
     RealType tolerance = options.tol;
 
     // allocate fields
@@ -92,9 +87,9 @@ IntegerType main(IntegerType argc, char* argv[]) {
     RealType xc = 1.0 / 4.0;
     RealType yc = 1.0 / 4.0;
     RealType radius = std::min(xc, yc) / 2.0;
-    for (IntegerType j = 0; j < nx; j++) {
+    for (int j = 0; j < nx; j++) {
         RealType y = (j - 1) * options.dx;
-        for (IntegerType i = 0; i < nx; i++) {
+        for (int i = 0; i < nx; i++) {
             RealType x = (i - 1) * options.dx;
             if ((x - xc) * (x - xc) + (y - yc) * (y - yc) < radius * radius) {
                 f(i,j) = inner_circle;
@@ -102,10 +97,10 @@ IntegerType main(IntegerType argc, char* argv[]) {
         }
     }
 
-    fill<RealType,IntegerType>(u, 0);
-    scale<RealType,IntegerType>(h2f, options.dx*options.dx, f);
+    fill<RealType>(u, 0);
+    scale<RealType>(h2f, options.dx*options.dx, f);
 
-    IntegerType iters_cg = 0;
+    int iters_cg = 0;
     bool cg_converged = false;
     RealType residual = 0.;
 

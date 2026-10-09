@@ -48,17 +48,6 @@ std::string json_value(const std::string& json, const std::string& key) {
 
 }  // namespace
 
-std::vector<BYTE> read_binary(const char* filename) {
-    std::ifstream file(filename, std::ios::binary);
-
-    file.seekg(0, std::ios::end);
-    const std::streampos file_size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<BYTE> file_data(file_size);
-    file.read(reinterpret_cast<char*>(file_data.data()), file_size);
-    return file_data;
-}
 
 SourceFieldMetadata read_source_field_metadata(const std::string& filename) {
     const std::string json = read_text_file(filename);

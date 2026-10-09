@@ -7,11 +7,22 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <cstdint>
+#include <variant>
 
-#include "../src/cpp/utils.hpp"
+#include "utils.hpp"
 
 
 /*** WRITE RHS AND EXACT SOLUTIONS VECTORS ***/
+
+using int_value_t = std::variant<
+    std::int8_t,
+    std::int16_t,
+    std::int32_t,
+    std::int64_t
+>;
+
+int_value_t make_int(int total_bits);
 
 void write_vectors(
     int test_case,

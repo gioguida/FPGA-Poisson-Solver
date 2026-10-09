@@ -1,47 +1,28 @@
 #ifndef DATA_HPP
 #define DATA_HPP
 
-#define FLOAT_
-
-#ifdef FLOAT_
-
-using RealType = double;
-using IntegerType = int;
-std::string format = "floating_point";
-std::string dtype = "double";
-
-#elifdef FIXED_
-
-#include "fixed.hpp"
-using RealType = numeric::fixed<12,20>;
-using IntegerType = numeric::fixed<32,0>;
-std::string format = "floating_point";
-std::string dtype = "double";
-
-#endif
-
-template <class RealType, class IntegerType>
+template <class RealType>
 struct Discretization {
-    IntegerType nx;
-    IntegerType ny;
-    IntegerType N;
+    int nx;
+    int ny;
+    int N;
     RealType dx; 
     RealType tol;
-    IntegerType iters;  
+    int iters;  
 };
 
-template <class RealType, class IntegerType>
+template <class RealType>
 class Field {
     public:
         // constructors
         Field() : ptr_(0), xdim_(0), ydim_(0) {}
-        Field(IntegerType xdim, IntegerType ydim) : xdim_(xdim), ydim_(ydim) {
+        Field(int xdim, int ydim) : xdim_(xdim), ydim_(ydim) {
             ptr_ = new RealType[xdim*ydim];
         }
         // desctructor
         ~Field() { free(); }
         // initialization
-        void init(IntegerType xdim, IntegerType ydim) {
+        void init(int xdim, int ydim) {
             free();
             ptr_ = new RealType[xdim*ydim];
             xdim_ = xdim;
@@ -50,23 +31,23 @@ class Field {
         // getters
         RealType* data() { return ptr_; }
         const RealType* data() const { return ptr_; }
-        IntegerType xdim() const { return xdim_; }
-        IntegerType ydim() const { return ydim_; }
-        IntegerType length() const { return xdim_*ydim_; }
+        int xdim() const { return xdim_; }
+        int ydim() const { return ydim_; }
+        int length() const { return xdim_*ydim_; }
 
         // access via (i,j) pair
-        inline RealType& operator() (IntegerType i, IntegerType j) {
+        inline RealType& operator() (int i, int j) {
             return ptr_[i+j*xdim_];
         }
-        inline RealType const& operator() (IntegerType i, IntegerType j) const {
+        inline RealType const& operator() (int i, int j) const {
             return ptr_[i+j*xdim_];
         }
 
         // access as a 1D field
-        inline RealType & operator[] (IntegerType i) {
+        inline RealType & operator[] (int i) {
             return ptr_[i];
         }
-        inline RealType const& operator[] (IntegerType i) const {
+        inline RealType const& operator[] (int i) const {
             return ptr_[i];
         }
     
@@ -78,7 +59,7 @@ class Field {
         }
 
         RealType * ptr_;
-        IntegerType xdim_;
-        IntegerType ydim_;
+        int xdim_;
+        int ydim_;
 };
 #endif

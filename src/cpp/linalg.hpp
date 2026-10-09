@@ -2,68 +2,73 @@
 #define LINALG_HPP
 
 #include "data.hpp"
+#include "fixed.hpp"
 
 #include <cmath>
 #include <iostream>
+#include <type_traits>
 
-template <class RealType, class IntegerType>
-RealType dot(Field<RealType, IntegerType> const& x, Field<RealType, IntegerType> const& y) {
-    IntegerType N = x.length();
+template <class RealType>
+RealType dot(Field<RealType> const& x, Field<RealType> const& y) {
+    int N = x.length();
     RealType result = 0.;
-    for(IntegerType i=0; i < N; ++i)
+    for(int i=0; i < N; ++i)
         result += x[i] * y[i];
     return result;
 };
 
-template <class RealType, class IntegerType>
-RealType norm2(Field<RealType, IntegerType> const& x) {
-    IntegerType N = x.length();
+template <class RealType>
+RealType norm2(Field<RealType> const& x) {
+    int N = x.length();
     RealType result = 0.;
-    for(IntegerType i=0; i < N; ++i)
+    for(int i=0; i < N; ++i)
         result += x[i] * x[i];
-    return std::sqrt(result);
+    if constexpr (std::is_floating_point<RealType>::value)
+        return std::sqrt(result);
+    else
+        return RealType(std::sqrt(result.to_double()));
 };
 
-template <class RealType, class IntegerType>
-void fill(Field<RealType, IntegerType>& x, const RealType value) {
-    IntegerType N = x.length();
-    for(IntegerType i=0; i < N; ++i) 
+template <class RealType>
+void fill(Field<RealType>& x, const RealType value) {
+    int N = x.length();
+    for(int i=0; i < N; ++i) 
         x[i] = value;
 };
 
 //  blas level 1 vector-vector operations
 
 // computes y := alpha*x
-template <class RealType, class IntegerType>
-void scale(Field<RealType, IntegerType>& y, const RealType alpha, Field<RealType, IntegerType> const& x) {
-    IntegerType N = y.length();
-    for(IntegerType i = 0; i < N; i++) {
+template <class RealType>
+void scale(Field<RealType>& y, const RealType alpha, Field<RealType> const& x) {
+    int N = y.length();
+    for(int i = 0; i < N; i++) {
         y[i] = alpha*x[i];
     }
 };
 
 // y = alpha*x + y
-template <class RealType, class IntegerType>
-void axpy(Field<RealType, IntegerType>& y, const RealType alpha, Field<RealType, IntegerType> const& x) {
-    IntegerType N = x.length();
-    for(IntegerType i=0; i < N; ++i)
+template <class RealType>
+void axpy(Field<RealType>& y, const RealType alpha, Field<RealType> const& x) {
+    int N = x.length();
+    for(int i=0; i < N; ++i)
         y[i] = alpha * x[i] + y[i];
 };
 
 // y := alpha*x + beta*z
-template <class RealType, class IntegerType>
-void lcomb(Field<RealType, IntegerType>& y, const RealType alpha, Field<RealType, IntegerType> const& x, const RealType beta,
-               Field<RealType, IntegerType> const& z) {
-    IntegerType N = x.length();
-    for(IntegerType i=0; i < N; ++i)
+template <class RealType>
+void lcomb(Field<RealType>& y, const RealType alpha, Field<RealType> const& x, const RealType beta,
+               Field<RealType> const& z) {
+    int N = x.length();
+    for(int i=0; i < N; ++i)
         y[i] =  alpha*x[i] + beta*z[i];
 };
 
 // y := x
-template <class RealType, class IntegerType>
-void copy(Field<RealType, IntegerType>& y, Field<RealType, IntegerType> const& x) {
-    IntegerType N = x.length();
-    for(IntegerType i=0; i < N; ++i)
+template <class RealType>
+void copy(Field<RealType>& y, Field<RealType> const& x) {
+    int N = x.length();
+    for(int i=0; i < N; ++i)
         y[i] =  x[i];
 };
 
@@ -72,14 +77,14 @@ void copy(Field<RealType, IntegerType>& y, Field<RealType, IntegerType> const& x
 // y = Ax
 // where A is the matrix that described the 5 point stencil for the Poisson Equation
 // boundaries use the boundary elements
-template <class RealType, class IntegerType>
-void stencil(Field<RealType, IntegerType>& y, Field<RealType, IntegerType> const& x) {
-    IntegerType nx = x.xdim();
-    IntegerType ny = x.ydim();
+template <class RealType>
+void stencil(Field<RealType>& y, Field<RealType> const& x) {
+    int nx = x.xdim();
+    int ny = x.ydim();
 
     // interior grid points
-    for(IntegerType i = 1; i < nx-1; ++i) {
-        for(IntegerType j = 1; j < ny-1; ++j) {
+    for(int i = 1; i < nx-1; ++i) {
+        for(int j = 1; j < ny-1; ++j) {
             y(i,j) = 4*x(i,j) 
                     - x(i-1,j) - x(i+1,j) 
                     - x(i,j-1) - x(i,j+1); 
@@ -87,25 +92,25 @@ void stencil(Field<RealType, IntegerType>& y, Field<RealType, IntegerType> const
     }
 
     // north boundary (corners excluded)
-    for(IntegerType i = 1; i < nx-1; ++i) {
+    for(int i = 1; i < nx-1; ++i) {
         y(i,0) = 4*x(i,0) 
                 - x(i-1,0) - x(i+1,0) - x(i,1); 
     }
 
     // south boundary (corners excluded)
-    for(IntegerType i = 1; i < nx-1; ++i) {
+    for(int i = 1; i < nx-1; ++i) {
         y(i,ny-1) = 4*x(i,ny-1) 
                 - x(i-1,ny-1) - x(i+1,ny-1) - x(i,ny-2); 
     }
 
     // west boundary (corners excluded)
-    for(IntegerType j = 1; j < ny-1; ++j) {
+    for(int j = 1; j < ny-1; ++j) {
         y(0,j) = 4*x(0,j) 
                 - x(1,j) - x(0,j-1) - x(0,j+1); 
     }
 
     // east boundary (corners excluded)
-    for(IntegerType j = 1; j < ny-1; ++j) {
+    for(int j = 1; j < ny-1; ++j) {
         y(nx-1,j) = 4*x(nx-1,j) 
                 - x(nx-2,j) - x(nx-1,j-1) - x(nx-1,j+1); 
     }
@@ -128,50 +133,50 @@ void stencil(Field<RealType, IntegerType>& y, Field<RealType, IntegerType> const
 
 
 // conjugate gradient solver
-template <class RealType, class IntegerType>
-IntegerType cg(Field<RealType, IntegerType>& u, Field<RealType, IntegerType> const& f, 
-                const IntegerType maxiters, const RealType tol, RealType& residual, bool& success) {
-    IntegerType nx = u.xdim();
-    IntegerType ny = u.ydim();
+template <class RealType>
+int cg(Field<RealType>& u, Field<RealType> const& f, 
+                const int maxiters, const RealType tol, RealType& residual, bool& success) {
+    int nx = u.xdim();
+    int ny = u.ydim();
     RealType alpha = 0.;
     RealType beta = 0.;    
     RealType one = static_cast<RealType>(1.0);            
-    Field<RealType, IntegerType> r(nx, ny); 
-    Field<RealType, IntegerType> r_old(nx, ny);
-    Field<RealType, IntegerType> p(nx, ny);
-    Field<RealType, IntegerType> Ap(nx, ny);
-    IntegerType k = 0;
-    stencil<RealType, IntegerType>(Ap, u);
+    Field<RealType> r(nx, ny); 
+    Field<RealType> r_old(nx, ny);
+    Field<RealType> p(nx, ny);
+    Field<RealType> Ap(nx, ny);
+    int k = 0;
+    stencil<RealType>(Ap, u);
 
     // initialize residual
-    lcomb<RealType, IntegerType>(r, one, f, -one, Ap);
-    residual = norm2<RealType, IntegerType>(r);
+    lcomb<RealType>(r, one, f, -one, Ap);
+    residual = norm2<RealType>(r);
     // initialize step
-    copy<RealType, IntegerType>(p, r);
+    copy<RealType>(p, r);
 
     for(k = 0; (k < maxiters) && (residual > tol); ++k) {
         // precompute A*p_k
-        stencil<RealType, IntegerType>(Ap, p);
+        stencil<RealType>(Ap, p);
 
         // alpha = <r_k,r_k>/<p_k,A*p_k>
-        alpha = dot<RealType, IntegerType>(r, r)/dot<RealType, IntegerType>(p, Ap);
+        alpha = dot<RealType>(r, r)/dot<RealType>(p, Ap);
 
         // x_{k+1} = x_k + alpha_k*p_k
-        axpy<RealType, IntegerType>(u, alpha, p);
+        axpy<RealType>(u, alpha, p);
 
         // store r_k
-        copy<RealType, IntegerType>(r_old, r);
+        copy<RealType>(r_old, r);
         // r_{k+1} = r_k - alpha_k * A*p_k
-        axpy<RealType, IntegerType>(r, -alpha, Ap);
+        axpy<RealType>(r, -alpha, Ap);
         // compute residual
         // std::cout << "residual = "<< residual << std::endl;
-        residual = norm2<RealType, IntegerType>(r);
+        residual = norm2<RealType>(r);
 
         // beta_k = <r_{k+1}, r_{k+1}>/<r_k,r_k>
-        beta = dot<RealType, IntegerType>(r,r)/dot<RealType, IntegerType>(r_old,r_old);
+        beta = dot<RealType>(r,r)/dot<RealType>(r_old,r_old);
 
         // p_{k+1} = r_{k+1} + beta_k*p_k
-        lcomb<RealType, IntegerType>(p, one, r, beta, p);
+        lcomb<RealType>(p, one, r, beta, p);
     }
 
     success = (residual < tol);

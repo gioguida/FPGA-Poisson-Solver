@@ -226,6 +226,7 @@ uv.lock
 
 # C/C++ artifacts
 *.o
+*.exe
 main
 *.bin
 *.bov
@@ -233,3 +234,6 @@ main
 # plots
 *.pdf
 *.png
+
+# binary data and metadata
+data/case00*/
