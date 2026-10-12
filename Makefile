@@ -1,5 +1,6 @@
 CXX     ?= g++
-CXXFLAGS = -O0 -g # -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all
+# CXXFLAGS = -O0 -g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=all
+CXXFLAGS = -O3
 
 SOURCES_SIM = src/cpp/walltime.cpp	src/cpp/utils.cpp	src/cpp/main.cpp
 HEADERS_SIM = src/cpp/walltime.hpp 	src/cpp/data.hpp 	src/cpp/linalg.hpp	src/cpp/utils.hpp	src/cpp/fixed.hpp
@@ -27,7 +28,16 @@ main: $(OBJ_SIM)
 vectors: $(OBJ_BIN)
 	$(CXX) $(CXXFLAGS) $(OBJ_BIN) -o $@
 
+.PHONY: test-wide-reduction
+test-wide-reduction: build/test_wide_reduction
+	build/test_wide_reduction
+
+build/test_wide_reduction: tests/cpp/test_wide_reduction.cpp src/cpp/data.hpp src/cpp/linalg.hpp src/cpp/fixed.hpp
+	mkdir -p build
+	$(CXX) $(CXXFLAGS) $< -o $@
+
 .PHONY: clean
 clean:
-	$(RM) main $(OBJ_SIM) output.*
+	$(RM) main main.exe $(OBJ_SIM) output.*
 	$(RM) vectors vectors.exe $(OBJ_BIN)
+	$(RM) -r **/__pycache__

@@ -43,7 +43,11 @@ void write_vectors (
         std::string path;
         std::string metadata_name = "meta.json";
         std::vector<int_t> f(nx*nx);
-        std::vector<int_t> u(nx*nx);
+        // Keep the analytic reference in a wider raw representation than the
+        // DUT input/output format.  It uses the same fractional-bit scaling as
+        // the selected test format, but must not be truncated to its 32-bit
+        // element type before the numerical study compares solution fields.
+        std::vector<std::int64_t> u(nx*nx);
         double x = 0.;
         double y = 0.;
         double h = 1.0/(nx-1);
@@ -57,7 +61,7 @@ void write_vectors (
                 for(int i = 0; i < nx; ++i) {
                     x = i*h;
                     y = j*h;
-                    u[i+j*nx] = static_cast<int_t>(std::round(singleSine_u(x,y) * scale));
+                    u[i+j*nx] = static_cast<std::int64_t>(std::round(singleSine_u(x,y) * scale));
                     f[i+j*nx] = static_cast<int_t>(std::round(singleSine_f(x,y) * scale));
                 }
             }
@@ -69,7 +73,7 @@ void write_vectors (
             fclose(input);
 
             FILE* output = fopen((path + "u_ex.bin").c_str(), "wb");
-            fwrite(u.data(), sizeof(int_t), u.size(), output);
+            fwrite(u.data(), sizeof(std::int64_t), u.size(), output);
             fclose(output);
 
         } if (test_case == 2 || test_case == 0) {
@@ -80,7 +84,7 @@ void write_vectors (
                 for(int i = 0; i < nx; ++i) {
                     x = i*h;
                     y = j*h;
-                    u[i+j*nx] = static_cast<int_t>(std::round(highFreqSine_u(x,y, 3, 2) * scale));
+                    u[i+j*nx] = static_cast<std::int64_t>(std::round(highFreqSine_u(x,y, 3, 2) * scale));
                     f[i+j*nx] = static_cast<int_t>(std::round(highFreqSine_f(x,y, 3, 2) * scale));
                 }
             }
@@ -92,7 +96,7 @@ void write_vectors (
             fclose(input);
 
             FILE* output = fopen((path + "u_ex.bin").c_str(), "wb");
-            fwrite(u.data(), sizeof(int_t), u.size(), output);
+            fwrite(u.data(), sizeof(std::int64_t), u.size(), output);
             fclose(output);
 
         } if (test_case == 3 || test_case == 0) {
@@ -103,7 +107,7 @@ void write_vectors (
                 for(int i = 0; i < nx; ++i) {
                     x = i*h;
                     y = j*h;
-                    u[i+j*nx] = static_cast<int_t>(std::round(polynomial_u(x,y) * scale));
+                    u[i+j*nx] = static_cast<std::int64_t>(std::round(polynomial_u(x,y) * scale));
                     f[i+j*nx] = static_cast<int_t>(std::round(polynomial_f(x,y) * scale));
                 }
             }
@@ -115,7 +119,7 @@ void write_vectors (
             fclose(input);
 
             FILE* output = fopen((path + "u_ex.bin").c_str(), "wb");
-            fwrite(u.data(), sizeof(int_t), u.size(), output);
+            fwrite(u.data(), sizeof(std::int64_t), u.size(), output);
             fclose(output);
 
         } if (test_case == 4 || test_case == 0) {
@@ -126,7 +130,7 @@ void write_vectors (
                 for(int i = 0; i < nx; ++i) {
                     x = i*h;
                     y = j*h;
-                    u[i+j*nx] = static_cast<int_t>(std::round(double(1.0) * scale));
+                    u[i+j*nx] = static_cast<std::int64_t>(std::round(double(1.0) * scale));
                     f[i+j*nx] = static_cast<int_t>(std::round(double(1.0) * scale));
                 }
             }
@@ -138,7 +142,7 @@ void write_vectors (
             fclose(input);
 
             FILE* output = fopen((path + "u_ex.bin").c_str(), "wb");
-            fwrite(u.data(), sizeof(int_t), u.size(), output);
+            fwrite(u.data(), sizeof(std::int64_t), u.size(), output);
             fclose(output);
         }
     }, value);

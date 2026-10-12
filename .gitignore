@@ -238,3 +238,6 @@ main.exe
 
 # binary data and metadata
 data/case00*/
+
+# results
+results/

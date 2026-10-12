@@ -105,16 +105,17 @@ int run_case(
 
     // set Dirichlet boundary conditions to 0 all around
     RealType const_bdy = 0.0;
-    fill(bndN, const_bdy, s);
-    fill(bndS, const_bdy, s);
-    fill(bndE, const_bdy, s);
-    fill(bndW, const_bdy, s);
+    fill(bndN, const_bdy);
+    fill(bndS, const_bdy);
+    fill(bndE, const_bdy);
+    fill(bndW, const_bdy);
 
-    fill<RealType>(u, 0, s);
+    fill<RealType>(u, 0);
     scale<RealType>(rhs, dx*dx, f, s);
 
     int iters_cg = 0;
     bool cg_converged = false;
+    bool numerical_breakdown = false;
     RealType residual = 0.;
 
     // start timer
@@ -122,7 +123,13 @@ int run_case(
 
     // Conjugate Gradient call
     iters_cg = cg(u, rhs, max_cg_iters, tolerance, residual,
-                              cg_converged, s);
+                   cg_converged, numerical_breakdown, s);
+
+    if (numerical_breakdown) {
+        std::cerr << "Numerical breakdown: fixed-point CG scalar is invalid"
+                  << std::endl;
+        return 2;
+    }
 
     // output some statistics
     std::cout << " CG executed for " << iters_cg 
