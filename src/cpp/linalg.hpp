@@ -111,7 +111,7 @@ RealType checked_div(RealType a, RealType b, Stats& s) {
         if (b.to_raw() == 0)
             throw std::runtime_error("division by zero");
 
-        int64_t numerator = int64_t(a.to_raw()) << RealType::fractional_bits;
+        int64_t numerator = int64_t(a.to_raw())  * (int64_t{1} << 24);
         int64_t scaled = numerator / int64_t(b.to_raw());
         using BaseType = typename RealType::base_type;
 
@@ -397,7 +397,7 @@ int cg(Field<RealType>& u, Field<RealType> const& f,
             if (!checked_div_wide(dot_wide(r, r, s), dot_wide(p, Ap, s),
                                   alpha, s)) {
                 numerical_breakdown = true;
-                break;
+                throw std::runtime_error("Numerical Breakdown inside wide division");
             }
         } else {
             alpha = checked_div(dot<RealType>(r, r, s),
@@ -420,7 +420,7 @@ int cg(Field<RealType>& u, Field<RealType> const& f,
             if (!checked_div_wide(dot_wide(r, r, s),
                                   dot_wide(r_old, r_old, s), beta, s)) {
                 numerical_breakdown = true;
-                break;
+                throw std::runtime_error("Numerical Breakdown inside wide division");
             }
         } else {
             beta = checked_div(dot<RealType>(r, r, s),

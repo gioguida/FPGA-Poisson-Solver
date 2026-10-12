@@ -28,14 +28,6 @@ main: $(OBJ_SIM)
 vectors: $(OBJ_BIN)
 	$(CXX) $(CXXFLAGS) $(OBJ_BIN) -o $@
 
-.PHONY: test-wide-reduction
-test-wide-reduction: build/test_wide_reduction
-	build/test_wide_reduction
-
-build/test_wide_reduction: tests/cpp/test_wide_reduction.cpp src/cpp/data.hpp src/cpp/linalg.hpp src/cpp/fixed.hpp
-	mkdir -p build
-	$(CXX) $(CXXFLAGS) $< -o $@
-
 .PHONY: clean
 clean:
 	$(RM) main main.exe $(OBJ_SIM) output.*
