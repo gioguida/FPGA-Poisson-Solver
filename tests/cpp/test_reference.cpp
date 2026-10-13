@@ -133,12 +133,12 @@ int main(int argc, char* argv[]) {
     ////////////////////////////////////////////////////////////////////
 
     // binary data
-    FILE* output = fopen("data/test_runs/output.bin", "w");
+    FILE* output = fopen("build/test_runs/output.bin", "w");
     fwrite(u.data(), sizeof(RealType), nx * nx, output);
     fclose(output);
     
 
-    std::ofstream fid("data/test_runs/output.bov");
+    std::ofstream fid("build/test_runs/output.bov");
     fid << "DATA_FILE: output.bin" << std::endl;
     fid << "DATA_SIZE: " << options.nx << " " << options.nx << " 1"
         << std::endl;

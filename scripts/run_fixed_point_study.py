@@ -370,7 +370,7 @@ def execute_case(
     code, stdout, stderr = run_command(
         [
             "./main",
-            f"data/{case}",
+            f"build/{case}",
             precision,
         ],
         root,
@@ -819,7 +819,7 @@ def main():
             # Solution-field analysis
             # ---------------------------------------------------------------
 
-            case_dir = root / "data" / case
+            case_dir = root / "build" / case
 
             try:
                 u_exact, u_double, u_fixed = load_solutions(

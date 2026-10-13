@@ -1,15 +1,16 @@
 module fxp_mul #(
     parameter N = 32, F = 24
 ) (
-    input logic clk_i,
+    input logic clk_ci,
     input logic en_i,
+    input logic rst_ni,
     input logic signed [N-1:0] a_i, b_i,
     output logic signed [N-1:0] prod_o,
     output logic overflow_o
 );
     // signed N-bit extrema to check overflow 
-    int signed localparam  MAX = 2**(N-1) - 1;
-    int signed localparam  MIN = - 2**(N-1);
+    localparam int signed MAX = 2**(N-1) - 1;
+    localparam int signed MIN = -2**(N-1);
 
     // wide internal representations
     logic signed [2*N-1:0] a_wide, b_wide;
@@ -19,7 +20,8 @@ module fxp_mul #(
     assign b_wide = {{N{b_i[N-1]}}, b_i};
 
     // execute at clock signal
-    always_ff @(posedge clk_i) begin
+    always_ff @(posedge clk_ci, posedge rst_ni) begin
+        if (rst_ni) begin
         raw_prod <= a_wide * b_wide;
         scaled_prod <= raw_prod >>> F;
 
@@ -31,6 +33,9 @@ module fxp_mul #(
                 overflow_o <= 1'b0;
             // fit back into N bits
             prod_o <= scaled_prod[N-1:0];
+        end
+        end else begin
+            prod_o <= 1'b0;
         end
     end
 endmodule

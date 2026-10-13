@@ -30,6 +30,6 @@ vectors: $(OBJ_BIN)
 
 .PHONY: clean
 clean:
-	$(RM) main main.exe $(OBJ_SIM) output.*
+	$(RM) main **/*.exe $(OBJ_SIM) output.*
 	$(RM) vectors vectors.exe $(OBJ_BIN)
 	$(RM) -r **/__pycache__

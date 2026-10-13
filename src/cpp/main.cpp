@@ -22,7 +22,7 @@ void readcmdline(
 ) {
     if (argc != 3) {
         std::cerr << "Usage: main test_case precision \n";
-        std::cerr << " test_case        test case to evaluate (data/case00{1,2,3,4})\n";
+        std::cerr << " test_case        test case to evaluate (build/case00{1,2,3,4})\n";
         std::cerr << " precision        fixed or double\n";
         exit(1);
     }

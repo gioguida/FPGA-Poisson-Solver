@@ -1,4 +1,4 @@
-#include "../../data/sourcefield.hpp"
+#include "../../src/cpp/sourcefield.hpp"
 
 #include <cstdio>
 #include <fstream>

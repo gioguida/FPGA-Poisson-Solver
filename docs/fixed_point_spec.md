@@ -34,12 +34,16 @@ wide = int64_t(a.to_raw()) + int64_t(b.to_raw());
 /* Check for overflow... */
 sum = fixed<8,24>::from_base(static_cast<int32_t>(wide));
 ```
+Rounding: none. Addition keeps the Q8.24 binary-point position, so no fractional bits are removed. A result that fits in 32 bits is exact; an out-of-range result follows the documented overflow narrowing.
+
 ```c++
 // SUbtraction: a-b
 wide = int64_t(a.to_raw()) - int64_t(b.to_raw());
 /* Check for overflow... */
 sub = fixed<8,24>::from_base(static_cast<int32_t>(wide));
 ```
+Rounding: none. Subtraction also keeps the Q8.24 binary-point position, so a representable result is exact. Only an out-of-range result loses information through the documented 32-bit narrowing.
+
 ```c++
 // Multiplication: a*b
 wide = int64_t(a.to_raw()) * int64_t(b.to_raw());
@@ -47,6 +51,8 @@ scaled = wide >> 24;    // scale back properly
 /* Check for overflow... */
 prod = fixed<8,24>::from_base(static_cast<int32_t>(scaled));
 ```
+Rounding: `wide >> 24` is an arithmetic right shift. It rounds down: in units of the destination LSB, `+2.5` becomes `+2` and `-2.5` becomes `-3`. Exact results are unchanged.
+
 ```c++
 // Division: a/b
 numerator = int64_t(a.to_raw()) << 24  // perform the shift in the numerator
@@ -54,11 +60,15 @@ scaled = numerator / int64_t(b.to_raw());
 /* Check for overflow... */
 div = fixed<8,24>::from_base(static_cast<int32_t>(scaled));
 ```
+Rounding: signed integer division truncates toward zero. In units of the destination LSB, `+2.5` becomes `+2` and `-2.5` becomes `-2`; exact quotients are unchanged.
+
 A wider format is used for dot products and particularly sensible quantities.
 Specifically, dot prods are computed on 72-bit values (`int128_t` with overflow checks at 72 bits), if overflow
 occurs, the result is saturated at the corresponding 72-bits extremum.
 Also the wide division uses this format, as it is used for computing $\alpha$ and $\beta$:
 once the operation is performed using this higher precision, the results are truncated back to 32-bit values. 
+
+Rounding: a dot product retains every Q16.48 raw product in the Q*.48 accumulator, so it performs no per-product or final rounding. Wide division for $\alpha$ and $\beta$ truncates its scaled signed quotient toward zero when converting it to Q8.24: `+2.5` becomes `+2` and `-2.5` becomes `-2` in destination-LSB units.
 
 ## Operation-specific precision
 

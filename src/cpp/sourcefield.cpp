@@ -54,7 +54,7 @@ void write_vectors (
         double scale = std::pow(2.0, fractional_bits);
 
         if(test_case == 1 || test_case == 0) {
-            path = "data/case001/";
+            path = "build/case001/";
             std::filesystem::create_directories(path);
 
             for(int j = 0; j < nx; ++j) {
@@ -77,7 +77,7 @@ void write_vectors (
             fclose(output);
 
         } if (test_case == 2 || test_case == 0) {
-            path = "data/case002/";
+            path = "build/case002/";
             std::filesystem::create_directories(path);
 
             for(int j = 0; j < nx; ++j) {
@@ -100,7 +100,7 @@ void write_vectors (
             fclose(output);
 
         } if (test_case == 3 || test_case == 0) {
-            path = "data/case003/";
+            path = "build/case003/";
             std::filesystem::create_directories(path);
 
             for(int j = 0; j < nx; ++j) {
@@ -123,7 +123,7 @@ void write_vectors (
             fclose(output);
 
         } if (test_case == 4 || test_case == 0) {
-            path = "data/case004/";
+            path = "build/case004/";
             std::filesystem::create_directories(path);
 
             for(int j = 0; j < nx; ++j) {
