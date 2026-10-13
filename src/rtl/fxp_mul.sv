@@ -1,5 +1,6 @@
 module fxp_mul #(
-    parameter N = 32, F = 24
+    parameter int N = 32, 
+    parameter int F = 24
 ) (
     input logic clk_ci,
     input logic en_i,
@@ -16,15 +17,16 @@ module fxp_mul #(
     logic signed [2*N-1:0] a_wide, b_wide;
     logic signed [2*N-1:0] raw_prod, scaled_prod;
 
-    assign a_wide = {{N{a_i[N-1]}}, a_i};
-    assign b_wide = {{N{b_i[N-1]}}, b_i};
+    always_comb begin
+        a_wide = {{N{a_i[N-1]}}, a_i};
+        b_wide = {{N{b_i[N-1]}}, b_i};
+        raw_prod = a_wide * b_wide;
+        scaled_prod = raw_prod >>> F;
+    end
 
     // execute at clock signal
-    always_ff @(posedge clk_ci, posedge rst_ni) begin
+    always_ff @(posedge clk_ci, negedge rst_ni) begin : ff_mul
         if (rst_ni) begin
-        raw_prod <= a_wide * b_wide;
-        scaled_prod <= raw_prod >>> F;
-
         if(en_i) begin 
             // check overflow 
             if(scaled_prod > MAX || scaled_prod < MIN)
@@ -35,7 +37,8 @@ module fxp_mul #(
             prod_o <= scaled_prod[N-1:0];
         end
         end else begin
-            prod_o <= 1'b0;
+            prod_o <= '0;
+            overflow_o <= 1'b0;
         end
     end
 endmodule

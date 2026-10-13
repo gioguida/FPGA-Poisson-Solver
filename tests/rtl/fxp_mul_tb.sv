@@ -24,9 +24,6 @@ module test_fxp_mul;
     logic [31:0] b_raw;
     logic [31:0] expected_i;
     
-    logic valid_d0, valid_d1, valid_d2;
-    logic [31:0] expected_d0, expected_d1, expected_d2;
-
     integer vector_fd;
     integer scan_status;
     integer checks;
@@ -46,30 +43,20 @@ module test_fxp_mul;
     // Free-running clock used by both the driver and DUT.
     always #(CLK_PERIOD_NS / 2) clk_ci = ~clk_ci;
 
-    // Advance one DUT clock and check the output whose two-cycle datapath
-    // delay has just elapsed.  #1 waits for DUT non-blocking assignments to
-    // update before prod_o is examined.
+    // Advance one DUT clock and check the result captured from the inputs
+    // driven before this edge.  #1 waits for DUT non-blocking assignments
+    // to update before prod_o is examined.
     task automatic tick_and_check;
         begin
             @(posedge clk_ci);
             #1;
 
-            // Shift the expected output through the same timing as the DUT.
-            valid_d2 = valid_d1;
-            valid_d1 = valid_d0;
-            valid_d0 = valid_i;
-            expected_d2 = expected_d1;
-            expected_d1 = expected_d0;
-            expected_d0 = expected_i;
-
-            // The supplied vectors are all valid, but retaining this guard
-            // keeps the file format explicit and avoids checking pipeline fill.
-            if (valid_d2) begin
+            if (valid_i) begin
                 ++checks;
-                if (prod_o !== expected_d2) begin
+                if (prod_o !== expected_i) begin
                     ++failures;
                     $error("vector %0d: a=%08h b=%08h expected=%08h got=%08h",
-                           checks, a_raw, b_raw, expected_d2, prod_o);
+                           checks, a_raw, b_raw, expected_i, prod_o);
                 end
             end
         end
@@ -85,12 +72,6 @@ module test_fxp_mul;
         b_i = '0;
         valid_i = 1'b0;
         expected_i = '0;
-        valid_d0 = 1'b0;
-        valid_d1 = 1'b0;
-        valid_d2 = 1'b0;
-        expected_d0 = '0;
-        expected_d1 = '0;
-        expected_d2 = '0;
         checks = 0;
         failures = 0;
 
@@ -118,19 +99,6 @@ module test_fxp_mul;
             end
         end
         $fclose(vector_fd);
-
-        // Two enabled cycles drain raw_prod and scaled_prod so the final
-        // vector reaches prod_o.  valid_i=0 prevents dummy zeros from being
-        // counted as checks.
-        repeat (2) begin
-            @(negedge clk_ci);
-            en_i = 1'b1;
-            valid_i = 1'b0;
-            a_i = '0;
-            b_i = '0;
-            expected_i = '0;
-            tick_and_check();
-        end
 
         // A nonzero failure count makes the simulator return a failing test.
         // overflow_o is intentionally not checked: the vector format contains
