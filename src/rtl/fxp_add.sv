@@ -32,14 +32,14 @@ module fxp_add #(
     logic signed [2*N-1:0] a_wide, b_wide;
     logic signed [2*N-1:0] raw_sum;
 
-    always_comb begin
+    always_comb begin : g_add_next_state
         a_wide = {{N{a_i[N-1]}}, a_i};
         b_wide = {{N{b_i[N-1]}}, b_i};
         raw_sum = a_wide + b_wide;
     end
 
     // execute at clock signal
-    always_ff @(posedge clk_ci, negedge rst_ni) begin : ff_add
+    always_ff @(posedge clk_ci, negedge rst_ni) begin : add_reg
         if (!rst_ni) begin  // reset active low
             sum_o <= '0;
             overflow_o <= 1'b0;

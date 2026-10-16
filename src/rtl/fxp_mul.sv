@@ -31,7 +31,7 @@ module fxp_mul #(
     logic signed [2*N-1:0] a_wide, b_wide;
     logic signed [2*N-1:0] raw_prod, scaled_prod;
 
-    always_comb begin
+    always_comb begin: g_mul_next_state
         a_wide = {{N{a_i[N-1]}}, a_i};
         b_wide = {{N{b_i[N-1]}}, b_i};
         raw_prod = a_wide * b_wide;
@@ -39,7 +39,7 @@ module fxp_mul #(
     end
 
     // execute at clock signal
-    always_ff @(posedge clk_ci, negedge rst_ni) begin : ff_mul
+    always_ff @(posedge clk_ci, negedge rst_ni) begin : mul_reg
         if (!rst_ni) begin  // reset active low
             prod_o <= '0;
             overflow_o <= 1'b0;
