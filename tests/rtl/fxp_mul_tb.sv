@@ -4,22 +4,23 @@ module test_fxp_mul;
     // 100 MHz test clock.  
     localparam int CLK_PERIOD_NS = 10;
 
-    // Run the simulator from the repository root so this relative path finds
+    // Run the simulator from tests/ so this relative path finds
     // the C++-generated vector file.
-    localparam string VECTOR_FILE = "../build/test_vectors/fxp_mul_Q8.hex";
+    localparam string VECTOR_FILE = "../build/test_vectors/fxp_mul_Q8_24.hex";
 
     // DUT clock, control, input, and result signals.
     logic clk_ci = 1'b0;
     logic rst_ni;
-    logic en_i;
+    logic valid_i;
     logic signed [31:0] a_i;
     logic signed [31:0] b_i;
+    logic valid_o;
     logic signed [31:0] prod_o;
     logic overflow_o;
 
     // A vector-file row has: valid_i a_raw b_raw expected_y_raw.
-    // valid_i is testbench metadata: fxp_mul has en_i but no valid output.
-    logic valid_i;
+    // valid_i is vector-file metadata and drives the DUT valid input.
+    logic vector_valid_i;
     logic [31:0] a_raw;
     logic [31:0] b_raw;
     logic [31:0] expected_i;
@@ -32,10 +33,11 @@ module test_fxp_mul;
     // Q8.24 instance under test.
     fxp_mul #(.N(32), .F(24)) dut (
         .clk_ci(clk_ci),
-        .en_i(en_i),
+        .valid_i(valid_i),
         .rst_ni(rst_ni),
         .a_i(a_i),
         .b_i(b_i),
+        .valid_o(valid_o),
         .prod_o(prod_o),
         .overflow_o(overflow_o)
     );
@@ -51,7 +53,7 @@ module test_fxp_mul;
             @(posedge clk_ci);
             #1;
 
-            if (valid_i) begin
+            if (valid_o) begin
                 ++checks;
                 if (prod_o !== expected_i) begin
                     ++failures;
@@ -67,10 +69,10 @@ module test_fxp_mul;
         // its reset branch while rst_ni is low, then starts processing after
         // rst_ni is set high.
         rst_ni = 1'b0;
-        en_i = 1'b0;
+        valid_i = 1'b0;
         a_i = '0;
         b_i = '0;
-        valid_i = 1'b0;
+        vector_valid_i = 1'b0;
         expected_i = '0;
         checks = 0;
         failures = 0;
@@ -87,12 +89,12 @@ module test_fxp_mul;
 
         while (!$feof(vector_fd)) begin
             scan_status = $fscanf(vector_fd, "%d %h %h %h\n",
-                                  valid_i, a_raw, b_raw, expected_i);
+                                  vector_valid_i, a_raw, b_raw, expected_i);
             if (scan_status == 4) begin
                 // Drive at the falling edge so inputs are stable before the
                 // next rising edge, when fxp_mul samples them.
                 @(negedge clk_ci);
-                en_i = valid_i;
+                valid_i = vector_valid_i;
                 a_i = $signed(a_raw);
                 b_i = $signed(b_raw);
                 tick_and_check();
