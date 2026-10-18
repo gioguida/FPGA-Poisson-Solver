@@ -1,7 +1,7 @@
 /** FIXED POINT AXPY MODULE
 * computes y := x + gamma*z, where x and z are vectors of V elements of signed fixed-point numbers,
 *   each with N total bits and F fractional bits, and gamma is a signed fixed-point scalar.
-*   K is number if chunks in which the vectors are divided for pipelined computation
+*   K is number if chunks in which the vectors are divided for time multiplexed computation.
 * LATENCY: K+1 clock cycles, after valid_i=1 at rising edge
 *   input accepted at rising edge n with valid_i=1 produces 
 *   corresponding output with valid_o=1 at clock edge n+K+1.
@@ -18,20 +18,20 @@ module fxp_axpy #(
     parameter int N = 32,   // total bits per element
     parameter int F = 24    // fractional bits
 ) (
-    input  logic clk_ci,
-    input  logic rst_ni,
+    input logic clk_ci,
+    input logic rst_ni,
 
-    input  logic valid_i,
-    input  logic signed [V*N-1:0] x_i, z_i,
-    input  logic signed [N-1:0] gamma_i,
+    input logic valid_i,
+    input logic signed [V*N-1:0] x_i, z_i,
+    input logic signed [N-1:0] gamma_i,
 
     output logic valid_o,
     output logic signed [V*N-1:0] y_o,
     output logic overflow_o
 );
 
-    localparam int LANES = V / K;   // total number of multipliers (adders)
-    localparam int SLICE = N * LANES;   // number of elements processed in parallel
+    localparam int LANES = V / K;       // number of fxp elements processed in parallel
+    localparam int SLICE = N * LANES;   // number of bits processed in parallel
     localparam int CW = $clog2(K + 1);  // n of bits to represent counter step
 
     // Controller
