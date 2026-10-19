@@ -3,22 +3,22 @@
 * Each stored word holds LANES instances of WIDTH-bit data
 */
 module ram #(
-    parameter int WIDTH = 32    // bits in each number
-    parameter int DEPTH = 64    // # words in array
-    parameter int LANES = 4     // numbers per word
-    localparam WORDWIDTH = LANES*WIDTH
+    parameter int WIDTH = 32,   // bits in each number
+    parameter int DEPTH = 64,   // # words in array
+    parameter int LANES = 4,    // numbers per word
+    localparam WORDWIDTH = LANES * WIDTH,
     localparam ADDRW = $clog2(DEPTH)
 ) (
-    input logic clk_ci;
+    input logic clk_ci,
 
-    input logic we_i;
-    input logic [ADDRW-1:0] w_addr_i;
-    input logic [WORDWIDTH-1:0] w_data_i;
+    input logic we_i,
+    input logic [ADDRW-1:0] w_addr_i,
+    input logic [WORDWIDTH-1:0] w_data_i,
 
-    input logic [ADDRW-1:0] r_addr_i;
-    output logic [WORDWIDTH-1:0] r_data_o;
+    input logic [ADDRW-1:0] r_addr_i,
+    output logic [WORDWIDTH-1:0] r_data_o
 );
-    logic [DEPTH-1:0] mem [WORDWIDTH];
+    logic [WORDWIDTH-1:0] mem [0:DEPTH-1];
 
     // sync read/write
     always_ff @(posedge clk_ci) begin

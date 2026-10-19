@@ -15,7 +15,11 @@ AXPY_GENERATOR   = gen_fxp_axpy_vectors
 AXPY_VECTOR_FILE = ../build/test_vectors/fxp_axpy_Q8_24.hex
 AXPY_SIM         = fxp_axpy_tb
 
-.PHONY: mul-vectors mul-test axpy-vectors axpy-test clean
+DOT_SIM = fxp_dot_tb
+
+RAM_SIM = ram_tb
+
+.PHONY: mul-vectors mul-test axpy-vectors axpy-test dot-test ram-test clean
 
 # Multiplier test
 mul-vectors: $(MUL_VECTOR_FILE)
@@ -48,5 +52,20 @@ $(AXPY_SIM): ../src/rtl/fxp_axpy.sv ../src/rtl/fxp_mul.sv \
 axpy-test: axpy-vectors $(AXPY_SIM)
 	$(VVP) $(AXPY_SIM)
 
+# Dot-product test
+$(DOT_SIM): ../src/rtl/fxp_dot.sv rtl/fxp_dot_tb.sv
+	$(SV) $(SVFLAGS) $^ -o $@
+
+dot-test: $(DOT_SIM)
+	$(VVP) $(DOT_SIM)
+
+# RAM test
+$(RAM_SIM): ../src/rtl/ram.sv rtl/ram_tb.sv
+	$(SV) $(SVFLAGS) $^ -o $@
+
+ram-test: $(RAM_SIM)
+	$(VVP) $(RAM_SIM)
+
 clean:
-	$(RM) $(MUL_GENERATOR) $(MUL_SIM) $(AXPY_GENERATOR) $(AXPY_SIM) *.o
+	$(RM) $(MUL_GENERATOR) $(MUL_SIM) $(AXPY_GENERATOR) $(AXPY_SIM) \
+		$(DOT_SIM) $(RAM_SIM) *.o

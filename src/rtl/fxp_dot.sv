@@ -18,8 +18,9 @@
 * LATENCY: V+2 clock cycles, after valid_i=1 at the accepting rising edge.
 * RESET: Asynchronous, active-low reset (on falling edge).
 * VALIDITY: a_o and overflow_o are meaningful only when valid_o=1.
-* OVERFLOW: Sticky for the active transaction; asserted when the accumulated
-*   result exceeds the signed WIDE-bit range. The accumulator saturates.
+* OVERFLOW: Saturates to the corresponding bound for the active transaction; 
+*   asserted when the accumulated result exceeds the signed WIDE-bit range. 
+*   The accumulator saturates.
 */
 module fxp_dot #(
     parameter int V = 256,  // vector size
@@ -184,7 +185,16 @@ module fxp_dot #(
                 if (add_valid_o && add_pair_q == LAST_PAIR) begin
                     valid_o <= 1'b1;
                     busy_q <= 1'b0;
-                    a_o <= accumulator[WIDE-1:0];
+
+                    if (raw_sum > MAX_EXT) begin
+                        overflow_q <= 1'b1;
+                        a_o <= MAX;
+                    end else if (raw_sum < MIN_EXT) begin
+                        overflow_q <= 1'b1;
+                        a_o <= MIN;
+                    end else begin
+                        a_o <= raw_sum[WIDE-1:0];
+                    end
                 end
             end
         end
