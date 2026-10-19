@@ -25,8 +25,8 @@ module fxp_add #(
     output logic overflow_o
 );
     // signed N-bit extrema to check overflow 
-    localparam logic signed [N-1:0] MAX = {1'b0, (N-1){1'b1}};
-    localparam logic signed [N-1:0] MIN = {1'b1, (N-1){1'b0}};
+    localparam logic signed [2*N-1:0] MAX = {{(N+1){1'b0}}, {(N-1){1'b1}}};
+    localparam logic signed [2*N-1:0] MIN = {{(N+1){1'b1}}, {(N-1){1'b0}}};
 
     // wide internal representations
     logic signed [2*N-1:0] a_wide, b_wide;

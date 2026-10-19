@@ -11,7 +11,7 @@
 * ARITHMETIC: y[i] = wrap_N(x[i] + wrap_N((gamma * z[i]) >>> F))
 *   uses moduled fxp_add and fxp_mul to perform element-wise operations.
 */
-module fxp_axpy #(
+module fxp_axpy_multiplexed #(
     parameter int V = 256,  // vector size
     parameter int K = 8,    // number of chunks
     parameter int N = 32,   // total bits per element
