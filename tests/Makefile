@@ -19,7 +19,9 @@ DOT_SIM = fxp_dot_tb
 
 RAM_SIM = ram_tb
 
-.PHONY: mul-vectors mul-test axpy-vectors axpy-test dot-test ram-test clean
+.PHONY: test mul-vectors mul-test axpy-test dot-test ram-test clean
+
+test: mul-test axpy-test dot-test ram-test
 
 # Multiplier test
 mul-vectors: $(MUL_VECTOR_FILE)
@@ -36,20 +38,12 @@ $(MUL_SIM): ../src/rtl/fxp_mul.sv rtl/fxp_mul_tb.sv
 mul-test: mul-vectors $(MUL_SIM)
 	$(VVP) $(MUL_SIM)
 
-# AXPY test
-axpy-vectors: $(AXPY_VECTOR_FILE)
-
-$(AXPY_GENERATOR): cpp/gen_fxp_axpy_vectors.cpp $(CPP_HEADERS)
-	$(CXX) $(CXXFLAGS) $< -o $@
-
-$(AXPY_VECTOR_FILE): $(AXPY_GENERATOR)
-	./$(AXPY_GENERATOR) $@
-
+# AXPY streaming test
 $(AXPY_SIM): ../src/rtl/fxp_axpy.sv ../src/rtl/fxp_mul.sv \
 	../src/rtl/fxp_add.sv rtl/fxp_axpy_tb.sv
 	$(SV) $(SVFLAGS) $^ -o $@
 
-axpy-test: axpy-vectors $(AXPY_SIM)
+axpy-test: $(AXPY_SIM)
 	$(VVP) $(AXPY_SIM)
 
 # Dot-product test

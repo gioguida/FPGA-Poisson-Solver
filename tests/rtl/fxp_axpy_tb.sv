@@ -1,109 +1,167 @@
 `timescale 1ns/1ps
 
-module test_fxp_axpy;
-    localparam int CLK_PERIOD_NS = 10;
-    localparam int V = 8;
-    localparam int K = 2;
+module fxp_axpy_tb;
     localparam int N = 32;
     localparam int F = 24;
-
-    // Run the simulator from the repository root so this path resolves to
-    // the vector file written by gen_fxp_axpy_vectors.cpp.
-    localparam string VECTOR_FILE = "../build/test_vectors/fxp_axpy_Q8_24.hex";
+    localparam int NUM_CASES = 8;
 
     logic clk_ci = 1'b0;
-    logic rst_ni;
-    logic valid_i;
-    logic signed [V*N-1:0] x_i;
-    logic signed [V*N-1:0] z_i;
-    logic signed [N-1:0] gamma_i;
+    logic rst_ni = 1'b0;
+    logic valid_i = 1'b0;
+    logic signed [N-1:0] x_i = '0;
+    logic signed [N-1:0] z_i = '0;
+    logic signed [N-1:0] gamma_i = '0;
+
     logic valid_o;
-    logic signed [V*N-1:0] y_o;
+    logic signed [N-1:0] y_o;
     logic overflow_o;
 
-    // A vector row is: valid_i gamma_raw x_packed z_packed expected_y_packed.
-    logic [31:0] gamma_raw;
-    logic [V*N-1:0] x_raw;
-    logic [V*N-1:0] z_raw;
-    logic [V*N-1:0] expected_y;
+    logic signed [N-1:0] x_cases [NUM_CASES];
+    logic signed [N-1:0] z_cases [NUM_CASES];
+    logic signed [N-1:0] gamma_cases [NUM_CASES];
+    logic case_valid [NUM_CASES];
 
-    integer vector_fd;
-    integer scan_status;
     integer checks;
-    integer failures;
 
-    fxp_axpy #(.V(V), .K(K), .N(N), .F(F)) dut (
-        .clk_ci(clk_ci),
-        .rst_ni(rst_ni),
-        .valid_i(valid_i),
-        .x_i(x_i),
-        .z_i(z_i),
-        .gamma_i(gamma_i),
-        .valid_o(valid_o),
-        .y_o(y_o),
-        .overflow_o(overflow_o)
+    fxp_axpy #(.N(N), .F(F)) dut (
+        .clk_ci,
+        .rst_ni,
+        .valid_i,
+        .x_i,
+        .z_i,
+        .gamma_i,
+        .valid_o,
+        .y_o,
+        .overflow_o
     );
 
-    always #(CLK_PERIOD_NS / 2) clk_ci = ~clk_ci;
+    always #5 clk_ci = ~clk_ci;
 
-    task automatic wait_for_result;
+    function automatic logic signed [N-1:0] expected_result(
+        input logic signed [N-1:0] x,
+        input logic signed [N-1:0] z,
+        input logic signed [N-1:0] gamma
+    );
+        logic signed [2*N-1:0] product;
+        logic signed [2*N-1:0] scaled_product;
         begin
-            do begin
-                @(posedge clk_ci);
-                #1;
-            end while (!valid_o);
+            product = gamma * z;
+            scaled_product = product >>> F;
+            expected_result = x + scaled_product[N-1:0];
         end
-    endtask
+    endfunction
+
+    function automatic logic expected_overflow(
+        input logic signed [N-1:0] x,
+        input logic signed [N-1:0] z,
+        input logic signed [N-1:0] gamma
+    );
+        logic signed [2*N-1:0] product;
+        logic signed [2*N-1:0] scaled_product;
+        logic signed [N-1:0] wrapped_product;
+        logic signed [2*N-1:0] sum;
+        begin
+            product = gamma * z;
+            scaled_product = product >>> F;
+            wrapped_product = scaled_product[N-1:0];
+            sum = {{N{ x[N-1]}}, x}
+                + {{N{wrapped_product[N-1]}}, wrapped_product};
+            expected_overflow =
+                (scaled_product > 64'sh0000_0000_7fff_ffff)
+                || (scaled_product < -64'sh0000_0000_8000_0000)
+                || (sum > 64'sh0000_0000_7fff_ffff)
+                || (sum < -64'sh0000_0000_8000_0000);
+        end
+    endfunction
 
     initial begin
-        rst_ni = 1'b0;
-        valid_i = 1'b0;
-        x_i = '0;
-        z_i = '0;
-        gamma_i = '0;
+        x_cases[0] = 32'sh0100_0000;
+        z_cases[0] = 32'sh0200_0000;
+        gamma_cases[0] = 32'sh0080_0000;
+        case_valid[0] = 1'b1;
+
+        x_cases[1] = -32'sh0180_0000;
+        z_cases[1] = 32'sh0100_0000;
+        gamma_cases[1] = -32'sh0040_0000;
+        case_valid[1] = 1'b1;
+
+        x_cases[2] = 32'sh0000_0000;
+        z_cases[2] = 32'sh0000_0001;
+        gamma_cases[2] = 32'sh0100_0000;
+        case_valid[2] = 1'b0;
+
+        x_cases[3] = 32'sh0000_0003;
+        z_cases[3] = -32'sh0000_0001;
+        gamma_cases[3] = 32'sh0100_0000;
+        case_valid[3] = 1'b1;
+
+        x_cases[4] = 32'sh7fff_ff00;
+        z_cases[4] = 32'sh0000_0100;
+        gamma_cases[4] = 32'sh0100_0000;
+        case_valid[4] = 1'b1;
+
+        x_cases[5] = 32'sh8000_0100;
+        z_cases[5] = 32'sh0000_0100;
+        gamma_cases[5] = 32'sh0100_0000;
+        case_valid[5] = 1'b1;
+
+        x_cases[6] = -32'sh0100_0000;
+        z_cases[6] = 32'sh0180_0000;
+        gamma_cases[6] = 32'sh0040_0000;
+        case_valid[6] = 1'b0;
+
+        x_cases[7] = 32'sh0000_0000;
+        z_cases[7] = 32'sh0100_0000;
+        gamma_cases[7] = 32'sh0180_0000;
+        case_valid[7] = 1'b1;
+
+        repeat (2) @(posedge clk_ci);
+        rst_ni = 1'b1;
+
         checks = 0;
-        failures = 0;
+        for (int i = 0; i < NUM_CASES; i++) begin
+            @(negedge clk_ci);
+            valid_i = case_valid[i];
+            x_i = x_cases[i];
+            z_i = z_cases[i];
+            gamma_i = gamma_cases[i];
 
-        @(posedge clk_ci);
-        #1 rst_ni = 1'b1;
-
-        vector_fd = $fopen(VECTOR_FILE, "r");
-        if (vector_fd == 0) begin
-            $fatal(1, "Cannot open vector file: %s", VECTOR_FILE);
-        end
-
-        while (!$feof(vector_fd)) begin
-            scan_status = $fscanf(vector_fd, "%d %h %h %h %h\n",
-                                  valid_i, gamma_raw, x_raw, z_raw,
-                                  expected_y);
-            if (scan_status == 5) begin
-                @(negedge clk_ci);
-                gamma_i = $signed(gamma_raw);
-                x_i = $signed(x_raw);
-                z_i = $signed(z_raw);
-                valid_i = 1'b1;
-
-                // fxp_axpy accepts one transaction only while idle.  Drive
-                // each case separately and compare at its valid_o edge.
-                @(negedge clk_ci);
-                valid_i = 1'b0;
-                wait_for_result();
-
-                ++checks;
-                if (y_o !== expected_y) begin
-                    ++failures;
-                    $error("vector %0d: gamma=%08h x=%h z=%h expected=%h got=%h",
-                           checks, gamma_raw, x_raw, z_raw, expected_y, y_o);
+            @(posedge clk_ci);
+            #1;
+            if (valid_o) begin
+                if (i == 0 ||
+                    y_o !== expected_result(
+                        x_cases[i-1], z_cases[i-1], gamma_cases[i-1])
+                    || overflow_o !== expected_overflow(
+                        x_cases[i-1], z_cases[i-1], gamma_cases[i-1])) begin
+                    $fatal(1, "unexpected result at cycle %0d: got %h overflow=%b",
+                           i, y_o, overflow_o);
                 end
+                checks = checks + 1;
             end
         end
-        $fclose(vector_fd);
 
-        if (failures != 0) begin
-            $fatal(1, "fxp_axpy failed %0d of %0d checks", failures, checks);
+        @(negedge clk_ci);
+        valid_i = 1'b0;
+        @(posedge clk_ci);
+        #1;
+        if (valid_o) begin
+            if (y_o !== expected_result(
+                    x_cases[NUM_CASES-1], z_cases[NUM_CASES-1],
+                    gamma_cases[NUM_CASES-1])
+                || overflow_o !== expected_overflow(
+                    x_cases[NUM_CASES-1], z_cases[NUM_CASES-1],
+                    gamma_cases[NUM_CASES-1])) begin
+                $fatal(1, "unexpected final result: got %h overflow=%b",
+                       y_o, overflow_o);
+            end
+            checks = checks + 1;
         end
 
-        $display("fxp_axpy passed %0d vector checks", checks);
+        if (checks != 6)
+            $fatal(1, "expected 6 valid outputs, got %0d", checks);
+
+        $display("fxp_axpy_tb PASS: %0d streaming results checked", checks);
         $finish;
     end
 endmodule
