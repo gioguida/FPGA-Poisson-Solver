@@ -41,7 +41,9 @@
    Ap=4p_C-p_L-p_R-p_U-p_D.
    $$
    Verify that independently. Then solve the interesting problem: how to supply those five values from memory.
-   I would actually permit two architectures here. A v0 stencil may use time-multiplexed memory accesses and take several cycles per grid point. It is simple and gives you a correct whole-system baseline. A subsequent v1 streaming stencil should use row/line buffering so that, after filling the pipeline, you can produce roughly one stencil value per cycle. Comparing those two implementations in latency/resources is exactly the sort of result that makes the final project technically convincing.
+   I would actually permit two architectures here. 
+   1. A v0 stencil may use time-multiplexed memory accesses and take several cycles per grid point. It is simple and gives you a correct whole-system baseline. 
+   2. A subsequent v1 streaming stencil should use row/line buffering so that, after filling the pipeline, you can produce roughly one stencil value per cycle. Comparing those two implementations in latency/resources is exactly the sort of result that makes the final project technically convincing.
 7. Implement scalar division separately, late rather than early. You need it only for
    $$
    \alpha=\frac{r^Tr}{p^TAp}, \qquad

@@ -35,7 +35,7 @@ module poisson_stencil #(
     localparam logic signed [N+1:0] MAX = {{3{1'b0}}, {(N-1){1'b1}}};
     localparam logic signed [N+1:0] MIN = {{3{1'b1}}, {(N-1){1'b0}}};
 
-    logic signed [N-1:0] center_s0_q, center_s1_q, center_s2_q, center_s3_q;
+    logic signed [N-1:0] center_s0_q, center_s1_q;
 
     logic signed [N+1:0] center_times_4_wide;
     logic signed [N-1:0] sum_ns, sum_we, sum_neighbours;
@@ -49,8 +49,8 @@ module poisson_stencil #(
 
     logic [2:0] sum_overflow;
     logic sub_overflow;
-    logic scale_overflow;
-    logic overflow_s0_q, overflow_s1_q, overflow_s2_q, overflow_s3_q;
+    logic scale_overflow_s0_q;
+    logic overflow_s1_q, overflow_s2_q;
 
     always_comb begin
         center_times_4_wide =
@@ -69,7 +69,7 @@ module poisson_stencil #(
         a_3 = sum_ns;
         b_3 = sum_we;
 
-        minuend = center_s3_q;
+        minuend = center_s1_q;
         subtrahend = sum_neighbours;
     end
 
@@ -79,14 +79,10 @@ module poisson_stencil #(
 
             center_s0_q <= '0;
             center_s1_q <= '0;
-            center_s2_q <= '0;
-            center_s3_q <= '0;
 
-            overflow_s0_q <= 1'b0;
+            scale_overflow_s0_q <= 1'b0;
             overflow_s1_q <= 1'b0;
             overflow_s2_q <= 1'b0;
-            overflow_s3_q <= 1'b0;
-            scale_overflow <= 1'b0;
 
             Ax_o <= '0;
             overflow_o <= 1'b0;
@@ -94,30 +90,33 @@ module poisson_stencil #(
             valid_o <= valid_o_sub;
 
             if (valid_i) begin
-                scale_overflow <= (center_times_4_wide > MAX)
-                                || (center_times_4_wide < MIN);
+                scale_overflow_s0_q <= (center_times_4_wide > MAX)
+                                     || (center_times_4_wide < MIN);
                 center_s0_q <= center_times_4_wide[N-1:0];
+            end else begin
+                scale_overflow_s0_q <= 1'b0;
             end
 
             center_s1_q <= center_s0_q;
-            center_s2_q <= center_s1_q;
-            center_s3_q <= center_s2_q;
 
             if (valid_o_sub) begin
                 Ax_o <= difference;
-                overflow_o <= overflow_s3_q || sub_overflow;
+                overflow_o <= overflow_s2_q || sub_overflow;
             end
 
-            overflow_s0_q <= (valid_o_add_ns && valid_o_add_we)
-                      && (scale_overflow
-                          || sum_overflow[0]
-                          || sum_overflow[1]);
+            if (valid_o_add_ns && valid_o_add_we) begin
+                overflow_s1_q <= scale_overflow_s0_q
+                              || sum_overflow[0]
+                              || sum_overflow[1];
+            end else begin
+                overflow_s1_q <= 1'b0;
+            end
 
-            overflow_s1_q <= overflow_s0_q;
-
-            overflow_s2_q <= overflow_s1_q
-                      || (valid_o_add_final && sum_overflow[2]);
-            overflow_s3_q <= overflow_s2_q;
+            if (valid_o_add_final) begin
+                overflow_s2_q <= overflow_s1_q || sum_overflow[2];
+            end else begin
+                overflow_s2_q <= 1'b0;
+            end
         end
     end
 
