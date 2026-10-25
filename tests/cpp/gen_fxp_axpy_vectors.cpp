@@ -1,4 +1,3 @@
-#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -18,7 +17,6 @@ using i64 = std::int64_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 
-constexpr unsigned V = 8;
 constexpr unsigned FRAC_BITS = 24;
 constexpr u64 SCALE = u64{1} << FRAC_BITS;
 constexpr i32 MIN_RAW = std::numeric_limits<i32>::min();
@@ -26,71 +24,40 @@ constexpr i32 MAX_RAW = std::numeric_limits<i32>::max();
 
 using Q8_24 = numeric::fixed<8, FRAC_BITS>;
 
+// Each row describes one scalar AXPY transaction: y = x + gamma*z.
 struct TestCase {
     i32 gamma;
-    std::array<i32, V> x;
-    std::array<i32, V> z;
+    i32 x;
+    i32 z;
 };
 
 std::vector<TestCase> generate_tests() {
-    std::vector<TestCase> tests;
-
-    auto add = [&](i32 gamma, const std::array<i32, V>& x,
-                   const std::array<i32, V>& z) {
-        tests.push_back({gamma, x, z});
+    std::vector<TestCase> tests = {
+        {0, 0, 0},
+        {static_cast<i32>(SCALE), static_cast<i32>(SCALE),
+         static_cast<i32>(2 * SCALE)},
+        {static_cast<i32>(SCALE / 2), -static_cast<i32>(SCALE),
+         static_cast<i32>(SCALE)},
+        {-static_cast<i32>(SCALE), 0, static_cast<i32>(SCALE)},
+        {static_cast<i32>(SCALE / 2), 0, 1},
+        {static_cast<i32>(SCALE / 2), 0, -1},
+        {static_cast<i32>(SCALE), MAX_RAW, 1},
+        {static_cast<i32>(SCALE), MIN_RAW, -1},
+        {MAX_RAW, MIN_RAW, MAX_RAW},
+        {MIN_RAW, MAX_RAW, MIN_RAW},
     };
 
-    // Directed cases: zero, ordinary values, truncation, and wraparound.
-    add(0, {0, 1, -1, static_cast<i32>(SCALE), -static_cast<i32>(SCALE),
-            MAX_RAW, MIN_RAW, 12345},
-           {MIN_RAW, MAX_RAW, 17, -17, 3, -3, 42, -42});
-
-    add(static_cast<i32>(SCALE / 2),
-        {static_cast<i32>(SCALE), -static_cast<i32>(SCALE), 0, 1, -1,
-         MAX_RAW, MIN_RAW, 0x000000ff},
-        {static_cast<i32>(SCALE), static_cast<i32>(SCALE),
-         static_cast<i32>(SCALE / 2), static_cast<i32>(SCALE / 2),
-         static_cast<i32>(SCALE / 2), static_cast<i32>(SCALE),
-         static_cast<i32>(SCALE), -0x000000ff});
-
-    add(-static_cast<i32>(SCALE),
-        {MAX_RAW, MIN_RAW, 0, static_cast<i32>(SCALE),
-         -static_cast<i32>(SCALE), 1, -1, 0},
-        {-1, 1, MAX_RAW, MIN_RAW, MAX_RAW, MIN_RAW,
-         static_cast<i32>(SCALE), -static_cast<i32>(SCALE)});
-
-    // Exact half-LSB products exercise arithmetic-right-shift truncation.
-    add(static_cast<i32>(SCALE / 2),
-        {0, 0, 0, 0, 0, 0, 0, 0},
-        {1, -1, 3, -3, 5, -5, 7, -7});
-
-    // Deterministic pseudorandom coverage, including multiplication and
-    // addition overflow cases.  Keep this small enough for quick RTL runs.
     constexpr std::size_t NUM_RANDOM = 1000;
     constexpr u64 SEED = 0xA8F1C0DEULL;
     std::mt19937_64 rng(SEED);
     std::uniform_int_distribution<i64> dist(MIN_RAW, MAX_RAW);
-
-    for (std::size_t test = 0; test < NUM_RANDOM; ++test) {
-        TestCase entry{};
-        entry.gamma = static_cast<i32>(dist(rng));
-        for (unsigned lane = 0; lane < V; ++lane) {
-            entry.x[lane] = static_cast<i32>(dist(rng));
-            entry.z[lane] = static_cast<i32>(dist(rng));
-        }
-        tests.push_back(entry);
+    for (std::size_t index = 0; index < NUM_RANDOM; ++index) {
+        tests.push_back({static_cast<i32>(dist(rng)),
+                         static_cast<i32>(dist(rng)),
+                         static_cast<i32>(dist(rng))});
     }
 
     return tests;
-}
-
-template <std::size_t N>
-void write_packed_vector(std::ofstream& file, const std::array<i32, N>& v) {
-    // Element zero occupies the least-significant packed bits, matching
-    // fxp_axpy's [lane*N +: N] slices.
-    for (std::size_t lane = N; lane-- > 0;) {
-        file << std::setw(8) << static_cast<u32>(v[lane]);
-    }
 }
 
 int main(int argc, char** argv) {
@@ -98,7 +65,6 @@ int main(int argc, char** argv) {
         const fs::path output = (argc > 1)
             ? fs::path(argv[1])
             : fs::path("build/test_vectors/fxp_axpy_Q8_24.hex");
-
         if (!output.parent_path().empty()) {
             fs::create_directories(output.parent_path());
         }
@@ -109,32 +75,23 @@ int main(int argc, char** argv) {
                                      output.string());
         }
 
-        const auto tests = generate_tests();
-        file << std::hex << std::setfill('0');
-
+        const std::vector<TestCase> tests = generate_tests();
+        Stats stats;
         for (const TestCase& test : tests) {
-            std::array<i32, V> expected{};
-            Stats stats;
+            const Q8_24 gamma = Q8_24::from_base(test.gamma);
+            const Q8_24 x = Q8_24::from_base(test.x);
+            const Q8_24 z = Q8_24::from_base(test.z);
+            const Q8_24 product = checked_mul(gamma, z, stats);
+            const Q8_24 expected = checked_add(x, product, stats);
 
-            for (unsigned lane = 0; lane < V; ++lane) {
-                const Q8_24 product = checked_mul(
-                    Q8_24::from_base(test.gamma),
-                    Q8_24::from_base(test.z[lane]), stats);
-                expected[lane] = checked_add(
-                    Q8_24::from_base(test.x[lane]), product, stats).to_raw();
-            }
-
-            // Format: valid_i gamma_raw x_packed z_packed expected_y_packed.
-            // Scalar fields are 32-bit hexadecimal bit patterns.  Packed
-            // vector fields contain element V-1 first through element 0 last.
-            file << 1 << " " << std::setw(8)
-                 << static_cast<u32>(test.gamma) << " ";
-            write_packed_vector(file, test.x);
-            file << " ";
-            write_packed_vector(file, test.z);
-            file << " ";
-            write_packed_vector(file, expected);
-            file << "\n";
+            // Format: valid_i gamma_raw x_raw z_raw expected_y_raw.
+            // Every field is one 32-bit raw Q8.24 value; no packed lanes.
+            file << "1 " << std::hex << std::setfill('0')
+                 << std::setw(8) << static_cast<u32>(test.gamma) << ' '
+                 << std::setw(8) << static_cast<u32>(test.x) << ' '
+                 << std::setw(8) << static_cast<u32>(test.z) << ' '
+                 << std::setw(8) << static_cast<u32>(expected.to_raw())
+                 << '\n';
         }
 
         file.close();
@@ -143,10 +100,10 @@ int main(int argc, char** argv) {
         }
 
         std::cout << "Generated " << std::dec << tests.size()
-                  << " test vectors\nOutput: " << output << "\n";
+                  << " scalar AXPY vectors\nOutput: " << output << '\n';
         return 0;
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: " << e.what() << "\n";
+    } catch (const std::exception& error) {
+        std::cerr << "ERROR: " << error.what() << '\n';
         return 1;
     }
 }
