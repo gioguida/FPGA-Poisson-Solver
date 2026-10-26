@@ -21,9 +21,9 @@ DOT_VECTOR_FILE = ../build/test_vectors/fxp_dot_Q8_24.hex
 
 RAM_SIM = ram_tb
 
-.PHONY: test mul-vectors mul-test axpy-test dot-vectors dot-test ram-test clean
+.PHONY: test mul-vectors mul-test axpy-test dot-vectors dot-test ram-test stencil-fetch-test clean
 
-test: mul-test axpy-test dot-test ram-test
+test: mul-test axpy-test dot-test ram-test stencil-fetch-test
 
 # Multiplier test
 mul-vectors: $(MUL_VECTOR_FILE)
@@ -76,6 +76,18 @@ $(RAM_SIM): ../src/rtl/ram.sv rtl/ram_tb.sv
 
 ram-test: $(RAM_SIM)
 	$(VVP) $(RAM_SIM)
+
+# Packed RAM neighborhood fetch, including all boundaries and lane positions.
+stencil-fetch-test:
+	mkdir -p ../build/tests
+	@set -e; for lanes in 2 4 8; do \
+		$(SV) $(SVFLAGS) -s stencil_neighborhood_fetch_tb \
+			-Pstencil_neighborhood_fetch_tb.LANES=$$lanes \
+			../src/rtl/ram.sv ../src/rtl/stencil_neighborhood_fetch.sv \
+			rtl/stencil_neighborhood_fetch_tb.sv \
+			-o ../build/tests/stencil_neighborhood_fetch_$$lanes.vvp; \
+		$(VVP) ../build/tests/stencil_neighborhood_fetch_$$lanes.vvp; \
+	done
 
 clean:
 	$(RM) $(MUL_GENERATOR) $(MUL_SIM) $(AXPY_GENERATOR) $(AXPY_SIM) \
