@@ -21,9 +21,9 @@ DOT_VECTOR_FILE = ../build/test_vectors/fxp_dot_Q8_24.hex
 
 RAM_SIM = ram_tb
 
-.PHONY: test mul-vectors mul-test axpy-test dot-vectors dot-test ram-test stencil-fetch-test clean
+.PHONY: test mul-vectors mul-test axpy-test dot-vectors dot-test ram-test stencil-fetch-test stencil-engine-test clean
 
-test: mul-test axpy-test dot-test ram-test stencil-fetch-test
+test: mul-test axpy-test dot-test ram-test stencil-fetch-test stencil-engine-test
 
 # Multiplier test
 mul-vectors: $(MUL_VECTOR_FILE)
@@ -88,6 +88,17 @@ stencil-fetch-test:
 			-o ../build/tests/stencil_neighborhood_fetch_$$lanes.vvp; \
 		$(VVP) ../build/tests/stencil_neighborhood_fetch_$$lanes.vvp; \
 	done
+
+# Complete point stencil: packed RAM fetch, arithmetic, coordinates, and handshake.
+stencil-engine-test:
+	mkdir -p ../build/tests
+	$(SV) $(SVFLAGS) -s poisson_stencil_engine_tb \
+		../src/rtl/ram.sv ../src/rtl/stencil_neighborhood_fetch.sv \
+		../src/rtl/fxp_add.sv ../src/rtl/fxp_sub.sv \
+		../src/rtl/poisson_stencil.sv ../src/rtl/poisson_stencil_engine.sv \
+		rtl/poisson_stencil_engine_tb.sv \
+		-o ../build/tests/poisson_stencil_engine.vvp
+	$(VVP) ../build/tests/poisson_stencil_engine.vvp
 
 clean:
 	$(RM) $(MUL_GENERATOR) $(MUL_SIM) $(AXPY_GENERATOR) $(AXPY_SIM) \
