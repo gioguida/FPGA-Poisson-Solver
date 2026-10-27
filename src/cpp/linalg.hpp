@@ -278,89 +278,72 @@ void stencil(Field<RealType>& y, Field<RealType> const& x,
              Stats& s) {
     int nx = x.xdim();
     int ny = x.ydim();
+    RealType center4, north_south, west_east, neighbors;
 
     // interior grid points
     for(int i = 1; i < nx-1; ++i) {
         for(int j = 1; j < ny-1; ++j) {
-            y(i,j) = checked_sub(
-                checked_sub(
-                    checked_sub(
-                        checked_sub(
-                            checked_mul(RealType(4), x(i,j), s),
-                            x(i-1,j), s),
-                        x(i+1,j), s),
-                    x(i,j-1), s),
-                x(i,j+1), s);
+            center4 = checked_mul(RealType(4), x(i,j), s);
+            north_south = checked_add(x(i,j-1), x(i,j+1), s);
+            west_east = checked_add(x(i-1,j), x(i+1,j), s);
+            neighbors = checked_add(north_south, west_east, s);
+            y(i,j) = checked_sub(center4, neighbors, s);
         }
     }
 
+
     // north boundary (corners excluded)
     for(int i = 1; i < nx-1; ++i) {
-        y(i,0) = checked_sub(
-            checked_sub(
-                checked_sub(
-                    checked_mul(RealType(4), x(i,0), s),
-                    x(i-1,0), s),
-                x(i+1,0), s),
-            x(i,1), s);
+        center4 = checked_mul(RealType(4), x(i,0), s);
+        west_east = checked_add(x(i-1,0), x(i+1,0), s);
+        neighbors = checked_add(x(i,1), west_east, s);
+        y(i,0) = checked_sub(center4, neighbors, s);
     }
 
     // south boundary (corners excluded)
     for(int i = 1; i < nx-1; ++i) {
-        y(i,ny-1) = checked_sub(
-            checked_sub(
-                checked_sub(
-                    checked_mul(RealType(4), x(i,ny-1), s),
-                    x(i-1,ny-1), s),
-                x(i+1,ny-1), s),
-            x(i,ny-2), s);
+        center4 = checked_mul(RealType(4), x(i,ny-1), s);
+        west_east = checked_add(x(i-1,ny-1), x(i+1,ny-1), s);
+        neighbors = checked_add(x(i,ny-2), west_east, s);
+        y(i,ny-1) = checked_sub(center4, neighbors, s);
     }
 
     // west boundary (corners excluded)
     for(int j = 1; j < ny-1; ++j) {
-        y(0,j) = checked_sub(
-            checked_sub(
-                checked_sub(
-                    checked_mul(RealType(4), x(0,j), s),
-                    x(1,j), s),
-                x(0,j-1), s),
-            x(0,j+1), s);
+        center4 = checked_mul(RealType(4), x(0,j), s);
+        north_south = checked_add(x(0,j-1), x(0,j+1), s);
+        neighbors = checked_add(north_south, x(1,j), s);
+        y(0,j) = checked_sub(center4, neighbors, s);
+        
     }
 
     // east boundary (corners excluded)
     for(int j = 1; j < ny-1; ++j) {
-        y(nx-1,j) = checked_sub(
-            checked_sub(
-                checked_sub(
-                    checked_mul(RealType(4), x(nx-1,j), s),
-                    x(nx-2,j), s),
-                x(nx-1,j-1), s),
-            x(nx-1,j+1), s);
+        center4 = checked_mul(RealType(4), x(nx-1,j), s);
+        north_south = checked_add(x(nx-1,j-1), x(nx-1,j+1), s);
+        neighbors = checked_add(north_south, x(nx-2,j), s);
+        y(nx-1,j) = checked_sub(center4, neighbors, s);
     }
 
     // NW corner
-    y(0,0) = checked_sub(
-        checked_sub(checked_mul(RealType(4), x(0,0), s), x(1,0), s),
-        x(0,1), s);
+    center4 = checked_mul(RealType(4), x(0,0), s);
+    neighbors = checked_add(x(1,0), x(0,1), s);
+    y(0,0) = checked_sub(center4, neighbors, s);
 
     // NE corner
-    y(nx-1,0) = checked_sub(
-        checked_sub(
-            checked_mul(RealType(4), x(nx-1,0), s), x(nx-2,0), s),
-        x(nx-1,1), s);
+    center4 = checked_mul(RealType(4), x(nx-1,0), s);
+    neighbors = checked_add(x(nx-2,0), x(nx-1,1), s);
+    y(nx-1,0) = checked_sub(center4, neighbors, s);
 
     // SE corner
-    y(nx-1,ny-1) = checked_sub(
-        checked_sub(
-            checked_mul(RealType(4), x(nx-1,ny-1), s),
-            x(nx-2,ny-1), s),
-        x(nx-1,ny-2), s);
+    center4 = checked_mul(RealType(4), x(nx-1,ny-1), s);
+    neighbors = checked_add(x(nx-2,ny-1), x(nx-1,ny-2), s);
+    y(nx-1,ny-1) = checked_sub(center4, neighbors, s);
 
     // SW corner
-    y(0,ny-1) = checked_sub(
-        checked_sub(
-            checked_mul(RealType(4), x(0,ny-1), s), x(1,ny-1), s),
-        x(0,ny-2), s);
+    center4 = checked_mul(RealType(4), x(0,ny-1), s);
+    neighbors = checked_add(x(1,ny-1), x(0,ny-2), s);
+    y(0,ny-1) = checked_sub(center4, neighbors, s);
 };
 
 

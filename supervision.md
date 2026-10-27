@@ -70,3 +70,94 @@ p_{\rm new}
 }
 $$
 Notice the opportunities there. While producing $Ap$, you can eventually accumulate $p^TAp$ in the same pass. While producing $r_{\rm new}$, you can accumulate $r_{\rm new}^Tr_{\rm new}$. Those are good second-stage optimizations, because they eliminate entire memory traversals. I would not fuse them on day one; first prove each block separately.
+
+## Next steps from the point stencil engine
+
+The immediate objective is a verified whole-grid `Ap = A p` pass. The current
+`poisson_stencil_engine` accepts one coordinate at a time, fetches its
+neighborhood, and returns one result. Keep it as the simple baseline while
+building the rest of the stencil operation.
+
+### 1. Finish point-engine verification
+
+- Run the engine with supported lane counts (at least 2, 4, and 8) and check
+  every grid position, including corners and lane boundaries.
+- Delay `rd_valid_i` in a test to verify that the fetcher waits for memory.
+  Reset during a request and verify that a new request works afterward.
+- Compare the result and overflow flag with a fixed-point golden model. The
+  current C++ stencil subtracts neighbors sequentially, whereas the RTL sums
+  pairs of neighbors first. Wrapped results agree, but intermediate overflow
+  flags can differ. Define and document the intended overflow contract before
+  treating those flags as bit-accurate across implementations.
+
+Exit: automated tests cover coordinates, result tags, boundaries, stalls,
+reset, and documented overflow behavior.
+
+### 2. Add a complete-grid stencil pass
+
+Build a small controller that walks the grid in row-major order. For each
+coordinate, issue a request when the engine is ready, wait for `valid_o`, and
+write `Ax_o` into a separate `Ap` memory at the returned `(I_o, J_o)` location.
+Advance after the result has been written; assert completion after the last
+write. Keep the input field `p` separate from the output field `Ap`.
+
+Test the whole output field against the fixed-point C++ model for zero,
+hand-checkable, and bounded signed input fields. Compare every cell, rather
+than checking only selected positions.
+
+Exit: one command loads `p`, runs the pass, reads `Ap`, and checks the complete
+field against the golden model.
+
+### 3. Measure and synthesize the baseline
+
+Record grid size, arithmetic format, lane count, memory layout, request and
+result timing, total simulated cycles, and cycles per output cell. Synthesize
+the whole-grid stencil and record target part, tool version, clock target,
+resource use, and timing provenance. Document the implemented interface and
+memory schedule.
+
+The project plan prefers streaming rows with line buffers as the longer-term
+stencil architecture. Use the measured point-engine baseline to decide when
+that change is justified, then compare latency and resources under the same
+test conditions.
+
+Exit: the whole-grid simulation and synthesis results are reproducible from
+documented commands.
+
+### 4. Plan CG state memory
+
+Assign storage for `x`, `r`, `p`, `Ap`, and `b`. For every step of a CG
+iteration, list which engine reads and writes each field and how many memory
+ports are needed. Resolve read/write conflicts before writing the controller;
+use separate banks or an additional buffer only where the schedule requires
+them.
+
+Exit: every iteration step has a defined source, destination, and
+conflict-free memory access schedule.
+
+### 5. Integrate one CG iteration
+
+Define the scalar division interface and its fixed-point rules. Then schedule:
+
+1. `Ap = A p`
+2. `pap = p · Ap` and `alpha = rr / pap`
+3. `x = x + alpha p` and `r = r - alpha Ap`
+4. `rr_new = r · r` and `beta = rr_new / rr`
+5. `p = r + beta p`
+
+Compare `Ap`, `pap`, `alpha`, each updated vector, `rr_new`, and `beta` with
+the fixed-point model. Check numerical-breakdown and overflow behavior too.
+
+Exit: one RTL iteration agrees with the software model on small deterministic
+problems, with a documented cycle schedule.
+
+### 6. Complete the fixed-iteration solver and board flow
+
+Add initialization and a fixed iteration count `K`. Verify several iterations
+and the complete solution field. Then add the input/output host path, run
+synthesis and implementation, and validate deterministic problems on the
+physical board. Report RTL simulation cycles, post-route timing, and board
+measurements separately.
+
+The next coding task is the complete-grid stencil controller and its
+whole-field test, after the point-engine verification gaps are closed.

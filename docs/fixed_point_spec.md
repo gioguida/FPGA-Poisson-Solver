@@ -107,19 +107,17 @@ $$
 $$
 
 Just as the blas level-1 operations, this linear combination is obtained
-by composing the previously described sum and multiplications:
+by composing the previously described sum and multiplications.
+First, the neighboring points are accumulated using a three-sum reduction,
+second, the enighbor sum is subtracted from the center point multiplied by four
 
 ```cpp
 // y(i,j) = 4x(i,j) - x(i-1,j) - x(i+1,j) - x(i,j-1) - x(i,j+1)
-y(i,j) = checked_sub(
-                checked_sub(
-                    checked_sub(
-                        checked_sub(
-                            checked_mul((fixed<8,24>)4.0, x(i,j)),
-                            x(i-1,j)),
-                        x(i+1,j)),
-                    x(i,j-1)),
-                x(i,j+1));
+center4 = checked_mul(4.0, x(i,j));
+north_south = checked_add(x(i,j-1), x(i,j+1));
+west_east = checked_add(x(i-1,j), x(i+1,j));
+neighbors = checked_add(north_south, west_east);
+y(i,j) = checked_sub(center4, neighbors);
 ```
 
 All points outside the $16 \times 16$ domain contribute to 0 in the computation, as prescribed by Dirichlet BC.
