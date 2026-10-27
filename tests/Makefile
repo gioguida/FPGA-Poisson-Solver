@@ -20,8 +20,10 @@ DOT_GENERATOR = gen_fxp_dot_vectors
 DOT_VECTOR_FILE = ../build/test_vectors/fxp_dot_Q8_24.hex
 
 RAM_SIM = ram_tb
+STENCIL_GENERATOR = ../build/tests/gen_fxp_stencil_vectors
+STENCIL_VECTOR_FILE = ../build/test_vectors/fxp_stencil_Q8_8.hex
 
-.PHONY: test mul-vectors mul-test axpy-test dot-vectors dot-test ram-test stencil-fetch-test stencil-engine-test clean
+.PHONY: test mul-vectors mul-test axpy-test dot-vectors dot-test ram-test stencil-fetch-test stencil-vectors stencil-engine-test clean
 
 test: mul-test axpy-test dot-test ram-test stencil-fetch-test stencil-engine-test
 
@@ -90,15 +92,28 @@ stencil-fetch-test:
 	done
 
 # Complete point stencil: packed RAM fetch, arithmetic, coordinates, and handshake.
-stencil-engine-test:
+$(STENCIL_GENERATOR): cpp/gen_fxp_stencil_vectors.cpp $(CPP_HEADERS)
 	mkdir -p ../build/tests
-	$(SV) $(SVFLAGS) -s poisson_stencil_engine_tb \
-		../src/rtl/ram.sv ../src/rtl/stencil_neighborhood_fetch.sv \
-		../src/rtl/fxp_add.sv ../src/rtl/fxp_sub.sv \
-		../src/rtl/poisson_stencil.sv ../src/rtl/poisson_stencil_engine.sv \
-		rtl/poisson_stencil_engine_tb.sv \
-		-o ../build/tests/poisson_stencil_engine.vvp
-	$(VVP) ../build/tests/poisson_stencil_engine.vvp
+	$(CXX) $(CXXFLAGS) -std=c++17 $< -o $@
+
+$(STENCIL_VECTOR_FILE): $(STENCIL_GENERATOR)
+	mkdir -p ../build/test_vectors
+	$(STENCIL_GENERATOR) $@
+
+stencil-vectors: $(STENCIL_VECTOR_FILE)
+
+stencil-engine-test: stencil-vectors
+	mkdir -p ../build/tests
+	@set -e; for lanes in 2 4 8; do \
+		$(SV) $(SVFLAGS) -s poisson_stencil_engine_tb \
+			-Ppoisson_stencil_engine_tb.LANES=$$lanes \
+			../src/rtl/ram.sv ../src/rtl/stencil_neighborhood_fetch.sv \
+			../src/rtl/fxp_add.sv ../src/rtl/fxp_sub.sv \
+			../src/rtl/poisson_stencil.sv ../src/rtl/poisson_stencil_engine.sv \
+			rtl/poisson_stencil_engine_tb.sv \
+			-o ../build/tests/poisson_stencil_engine_$$lanes.vvp; \
+		$(VVP) ../build/tests/poisson_stencil_engine_$$lanes.vvp; \
+	done
 
 clean:
 	$(RM) $(MUL_GENERATOR) $(MUL_SIM) $(AXPY_GENERATOR) $(AXPY_SIM) \
