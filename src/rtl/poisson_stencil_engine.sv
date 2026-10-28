@@ -9,15 +9,15 @@
 module poisson_stencil_engine #(
     parameter int N = 32,
     parameter int F = 24,
-    parameter int ROWS = 32,
-    parameter int COLS = 32,
+    parameter int NX = 32,
+    parameter int NY = 32,
     parameter int LANES = 4,
 
-    localparam int XBITS = (ROWS > 1) ? $clog2(ROWS) : 1,
-    localparam int YBITS = (COLS > 1) ? $clog2(COLS) : 1,
-    localparam int GRID_BITS = (ROWS*COLS > 1) ? $clog2(ROWS*COLS) : 1,
+    localparam int XBITS = (NX > 1) ? $clog2(NX) : 1,
+    localparam int YBITS = (NY > 1) ? $clog2(NY) : 1,
+    localparam int GRID_BITS = (NX*NY > 1) ? $clog2(NX*NY) : 1,
     localparam int LANE_BITS = (LANES > 1) ? $clog2(LANES) : 1,
-    localparam int DEPTH = (ROWS*COLS + LANES - 1) / LANES,
+    localparam int DEPTH = (NX*NY + LANES - 1) / LANES,
     localparam int ADDRW = (DEPTH > 1) ? $clog2(DEPTH) : 1
 ) (
     input logic clk_ci, 
@@ -68,7 +68,7 @@ module poisson_stencil_engine #(
     end
 
     stencil_neighborhood_fetch #(
-        .N(N), .ROWS(ROWS), .COLS(COLS), .LANES(LANES)) poisson_engine_fetch (
+        .N(N), .NX(NX), .NY(NY), .LANES(LANES)) poisson_engine_fetch (
         .clk_ci, 
         .rst_ni, 
         .valid_i(valid_i && ready_o),

@@ -4,12 +4,12 @@ module stencil_neighborhood_fetch_tb #(
     parameter int LANES = 4
 );
     localparam int N = 8;
-    localparam int ROWS = 16;
-    localparam int COLS = 5;
-    localparam int DEPTH = ROWS*COLS/LANES;
+    localparam int NX = 16;
+    localparam int NY = 5;
+    localparam int DEPTH = NX*NY/LANES;
     localparam int ADDRW = $clog2(DEPTH);
-    localparam int XBITS = $clog2(ROWS);
-    localparam int YBITS = $clog2(COLS);
+    localparam int XBITS = $clog2(NX);
+    localparam int YBITS = $clog2(NY);
 
     logic clk_ci = 1'b0;
     logic rst_ni = 1'b0;
@@ -34,7 +34,7 @@ module stencil_neighborhood_fetch_tb #(
     );
 
     stencil_neighborhood_fetch #(
-        .N(N), .ROWS(ROWS), .COLS(COLS), .LANES(LANES)
+        .N(N), .NX(NX), .NY(NY), .LANES(LANES)
     ) dut (
         .clk_ci, .rst_ni, .valid_i, .I_i, .J_i,
         .rd_valid_i(rd_valid), .rd_data_i(rd_data),
@@ -60,11 +60,11 @@ module stencil_neighborhood_fetch_tb #(
                 cycles++;
             end
             if (!done_o || !valid_o) $fatal(1, "timeout at (%0d,%0d)", x, y);
-            if (center_o !== N'(x + ROWS*y + 1) ||
-                north_o  !== N'((y == 0)      ? 0 : x + ROWS*(y-1) + 1) ||
-                south_o  !== N'((y == COLS-1) ? 0 : x + ROWS*(y+1) + 1) ||
-                west_o   !== N'((x == 0)      ? 0 : x-1 + ROWS*y + 1) ||
-                east_o   !== N'((x == ROWS-1) ? 0 : x+1 + ROWS*y + 1))
+            if (center_o !== N'(x + NX*y + 1) ||
+                north_o  !== N'((y == 0)      ? 0 : x + NX*(y-1) + 1) ||
+                south_o  !== N'((y == NY-1) ? 0 : x + NX*(y+1) + 1) ||
+                west_o   !== N'((x == 0)      ? 0 : x-1 + NX*y + 1) ||
+                east_o   !== N'((x == NX-1) ? 0 : x+1 + NX*y + 1))
                 $fatal(1, "wrong neighborhood at (%0d,%0d): C=%0d N=%0d S=%0d W=%0d E=%0d",
                        x, y, center_o, north_o, south_o, west_o, east_o);
         end
@@ -83,8 +83,8 @@ module stencil_neighborhood_fetch_tb #(
         @(negedge clk_ci);
         w_en_i = 1'b0;
 
-        for (int y = 0; y < COLS; y++)
-            for (int x = 0; x < ROWS; x++)
+        for (int y = 0; y < NY; y++)
+            for (int x = 0; x < NX; x++)
                 check_point(x, y);
 
         $display("stencil_neighborhood_fetch_tb PASS: LANES=%0d", LANES);

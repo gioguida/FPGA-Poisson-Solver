@@ -1,6 +1,6 @@
 /** POISSON STENCIL NEIGHBORHOOD FETCHER
 * Fetches the center and four neighbors from a packed, row-major field.
-* LANES must be a power of two and at least two; ROWS must be divisible by
+* LANES must be a power of two and at least two; NX must be divisible by
 * LANES so north/south neighbors occupy the same lane as the center.
 * A request is accepted when valid_i and ready_o are high at a rising edge.
 * Each memory read is a one-cycle rd_en_o pulse; rd_valid_i identifies its
@@ -9,15 +9,15 @@
 */
 module stencil_neighborhood_fetch #(
     parameter int N = 32,
-    parameter int ROWS = 32,
-    parameter int COLS = 32,
+    parameter int NX = 32,
+    parameter int NY = 32,
     parameter int LANES = 4,
 
-    localparam int XBITS = (ROWS > 1) ? $clog2(ROWS) : 1,
-    localparam int YBITS = (COLS > 1) ? $clog2(COLS) : 1,
-    localparam int GRID_BITS = (ROWS*COLS > 1) ? $clog2(ROWS*COLS) : 1,
+    localparam int XBITS = (NX > 1) ? $clog2(NX) : 1,
+    localparam int YBITS = (NY > 1) ? $clog2(NY) : 1,
+    localparam int GRID_BITS = (NX*NY > 1) ? $clog2(NX*NY) : 1,
     localparam int LANE_BITS = (LANES > 1) ? $clog2(LANES) : 1,
-    localparam int DEPTH = (ROWS*COLS + LANES - 1) / LANES,
+    localparam int DEPTH = (NX*NY + LANES - 1) / LANES,
     localparam int ADDRW = (DEPTH > 1) ? $clog2(DEPTH) : 1
 ) (
     input logic clk_ci, 
@@ -109,8 +109,8 @@ module stencil_neighborhood_fetch #(
                     
                     case (point)
                         CENTER: rd_addr_o <= mem_addr_q;
-                        NORTH: rd_addr_o <= mem_addr_q - ADDRW'(ROWS/LANES);
-                        SOUTH: rd_addr_o <= mem_addr_q + ADDRW'(ROWS/LANES);
+                        NORTH: rd_addr_o <= mem_addr_q - ADDRW'(NX/LANES);
+                        SOUTH: rd_addr_o <= mem_addr_q + ADDRW'(NX/LANES);
                         EAST: rd_addr_o <= mem_addr_q + 1;
                         WEST: rd_addr_o <= mem_addr_q - 1;
                     endcase
@@ -190,14 +190,14 @@ module stencil_neighborhood_fetch #(
     end
 
     always_comb begin
-        idx = GRID_BITS'(I_q) + GRID_BITS'(ROWS) * GRID_BITS'(J_q);
+        idx = GRID_BITS'(I_q) + GRID_BITS'(NX) * GRID_BITS'(J_q);
         mem_addr_q = ADDRW'(idx >> LANE_BITS);
         mem_idx_q = LANE_BITS'(idx);
 
         bndN = (J_q == 0);
-        bndS = (J_q == YBITS'(COLS-1));
+        bndS = (J_q == YBITS'(NY-1));
         bndW = (I_q == 0);
-        bndE = (I_q == XBITS'(ROWS-1));
+        bndE = (I_q == XBITS'(NX-1));
     end
 
 endmodule

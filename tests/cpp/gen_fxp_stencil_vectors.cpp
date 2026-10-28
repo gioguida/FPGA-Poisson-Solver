@@ -1,6 +1,6 @@
 // Generate small, deterministic whole-grid vectors for the point stencil RTL.
-// Header: rows cols data_bits fractional_bits case_count (decimal).
-// Then rows*cols lines per case, in row-major order:
+// Header: nx ny data_bits fractional_bits case_count (decimal).
+// Then nx*ny lines per case, in row-major order:
 // input_raw expected_Ap_raw overflow (16-bit hex, 16-bit hex, decimal).
 #include <cstdint>
 #include <filesystem>
@@ -17,11 +17,11 @@
 namespace fs = std::filesystem;
 
 namespace {
-constexpr int ROWS = 8;
-constexpr int COLS = 5;
+constexpr int NX = 8;
+constexpr int NY = 5;
 constexpr int DATA_BITS = 16;
 constexpr int FRAC_BITS = 8;
-constexpr int CELL_COUNT = ROWS * COLS;
+constexpr int CELL_COUNT = NX * NY;
 constexpr int CASE_COUNT = 6;
 using Fixed = numeric::fixed<8, FRAC_BITS>;
 using Raw = Fixed::base_type;
@@ -35,9 +35,9 @@ std::vector<std::vector<Raw>> make_cases() {
     std::uniform_int_distribution<int> full_range(
         std::numeric_limits<Raw>::min(), std::numeric_limits<Raw>::max());
 
-    for (int j = 0; j < COLS; ++j) {
-        for (int i = 0; i < ROWS; ++i) {
-            const int index = i + ROWS * j;
+    for (int j = 0; j < NY; ++j) {
+        for (int i = 0; i < NX; ++i) {
+            const int index = i + NX * j;
             cases[1][index] = static_cast<Raw>(index + 1);
             cases[2][index] =
                 static_cast<Raw>(((37*i + 53*j + 19*i*j + 11) % 101) - 50);
@@ -45,12 +45,12 @@ std::vector<std::vector<Raw>> make_cases() {
             cases[5][index] = static_cast<Raw>(full_range(rng));
         }
     }
-    cases[3][3 + ROWS * 2] = 20000;
+    cases[3][3 + NX * 2] = 20000;
     return cases;
 }
 
 Fixed point_value(const Field<Fixed>& field, int i, int j) {
-    if (i < 0 || i >= ROWS || j < 0 || j >= COLS)
+    if (i < 0 || i >= NX || j < 0 || j >= NY)
         return Fixed::from_base(0);
     return field(i, j);
 }
@@ -85,21 +85,21 @@ int main(int argc, char** argv) {
             throw std::runtime_error("Cannot open vector file: " + output.string());
 
         const auto cases = make_cases();
-        file << ROWS << ' ' << COLS << ' ' << DATA_BITS << ' ' << FRAC_BITS
+        file << NX << ' ' << NY << ' ' << DATA_BITS << ' ' << FRAC_BITS
              << ' ' << cases.size() << '\n';
         file << std::hex << std::setfill('0');
 
         for (const auto& inputs : cases) {
-            Field<Fixed> field(ROWS, COLS);
-            Field<Fixed> ap(ROWS, COLS);
+            Field<Fixed> field(NX, NY);
+            Field<Fixed> ap(NX, NY);
             for (int index = 0; index < CELL_COUNT; ++index)
                 field[index] = Fixed::from_base(inputs[index]);
 
             Stats stats;
             stencil(ap, field, stats);
-            for (int j = 0; j < COLS; ++j) {
-                for (int i = 0; i < ROWS; ++i) {
-                    const int index = i + ROWS * j;
+            for (int j = 0; j < NY; ++j) {
+                for (int i = 0; i < NX; ++i) {
+                    const int index = i + NX * j;
                     const Raw expected = ap(i, j).to_raw();
                     const bool overflow = point_overflow(field, i, j, expected);
                     file << std::setw(4)

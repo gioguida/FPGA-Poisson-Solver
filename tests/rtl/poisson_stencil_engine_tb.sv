@@ -5,13 +5,13 @@ module poisson_stencil_engine_tb #(
 );
     localparam int N = 16;
     localparam int F = 8;
-    localparam int ROWS = 8;
-    localparam int COLS = 5;
-    localparam int CELL_COUNT = ROWS*COLS;
-    localparam int DEPTH = ROWS*COLS/LANES;
+    localparam int NX = 8;
+    localparam int NY = 5;
+    localparam int CELL_COUNT = NX*NY;
+    localparam int DEPTH = NX*NY/LANES;
     localparam int ADDRW = $clog2(DEPTH);
-    localparam int XBITS = $clog2(ROWS);
-    localparam int YBITS = $clog2(COLS);
+    localparam int XBITS = $clog2(NX);
+    localparam int YBITS = $clog2(NY);
 
     logic clk_ci = 1'b0;
     logic rst_ni = 1'b0;
@@ -53,7 +53,7 @@ module poisson_stencil_engine_tb #(
     );
 
     poisson_stencil_engine #(
-        .N(N), .F(F), .ROWS(ROWS), .COLS(COLS), .LANES(LANES)
+        .N(N), .F(F), .NX(NX), .NY(NY), .LANES(LANES)
     ) dut (
         .clk_ci, .rst_ni, .valid_i, .I_i, .J_i,
         .rd_valid_i(engine_rd_valid), .rd_data_i(engine_rd_data),
@@ -114,8 +114,8 @@ module poisson_stencil_engine_tb #(
             if (ready_o) $fatal(1, "engine stayed ready after accepting request");
             @(negedge clk_ci);
             // Offer another request while busy; it must not be accepted.
-            I_i = XBITS'((x+1) % ROWS);
-            J_i = YBITS'((y+1) % COLS);
+            I_i = XBITS'((x+1) % NX);
+            J_i = YBITS'((y+1) % NY);
 
             cycles = 0;
             while (!valid_o && cycles < 100) begin
@@ -127,7 +127,7 @@ module poisson_stencil_engine_tb #(
             end
             if (!valid_o) $fatal(1, "timeout at (%0d,%0d)", x, y);
 
-            index = x + ROWS*y;
+            index = x + NX*y;
             if (Ax_o !== expected_raw[index] || I_o !== XBITS'(x)
                 || J_o !== YBITS'(y)
                 || overflow_o !== expected_overflow[index])
@@ -186,7 +186,7 @@ module poisson_stencil_engine_tb #(
         scan_status = $fscanf(vector_fd, "%d %d %d %d %d\n",
                               vector_rows, vector_cols, vector_bits,
                               vector_frac, vector_cases);
-        if (scan_status != 5 || vector_rows != ROWS || vector_cols != COLS
+        if (scan_status != 5 || vector_rows != NX || vector_cols != NY
             || vector_bits != N || vector_frac != F || vector_cases < 3)
             $fatal(1, "stencil vector metadata does not match testbench");
 
@@ -217,8 +217,8 @@ module poisson_stencil_engine_tb #(
             // Exercise every position with extra memory latency on one field.
             delay_mode = (p == 2);
 
-            for (int y = 0; y < COLS; y++)
-                for (int x = 0; x < ROWS; x++)
+            for (int y = 0; y < NY; y++)
+                for (int x = 0; x < NX; x++)
                     check_point(x, y);
             if (p == 2 && delayed_response_count == 0)
                 $fatal(1, "delayed-memory scenario never returned a response");
